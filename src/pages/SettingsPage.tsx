@@ -121,7 +121,7 @@ export default function SettingsPage() {
     const roleBadge = (role: string) => {
         const colors: Record<string, { bg: string; text: string }> = {
             owner: { bg: 'rgba(245,158,11,0.12)', text: '#f59e0b' },
-            admin: { bg: 'rgba(99,102,241,0.12)', text: '#6366f1' },
+            admin: { bg: 'rgba(13,148,136,0.12)', text: '#0d9488' },
             trainer: { bg: 'rgba(16,185,129,0.12)', text: '#10b981' },
             staff: { bg: 'rgba(148,163,184,0.12)', text: '#94a3b8' },
         };
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                     <div className="surface p-6">
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
+                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
                                     <MessageSquare className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -239,7 +239,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-3">
                             {newTemplate && (
-                                <div className="rounded-xl p-4 space-y-3 animate-scale-in" style={{ backgroundColor: 'var(--accent-light)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                                <div className="rounded-xl p-4 space-y-3 animate-scale-in" style={{ backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent-glow)' }}>
                                     <input type="text" placeholder="Template name..." value={newTemplate.name}
                                         onChange={e => setNewTemplate({ ...newTemplate, name: e.target.value })}
                                         className="w-full px-3 py-2 rounded-lg text-sm input-field" />
@@ -281,7 +281,7 @@ export default function SettingsPage() {
                                                 <h4 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{tpl.name}</h4>
                                                 <div className="flex gap-1">
                                                     <button onClick={() => setEditingTemplate(tpl)} className="p-1.5 rounded-lg transition-all" style={{ color: 'var(--text-muted)' }}
-                                                        onMouseEnter={e => { e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.backgroundColor = 'var(--accent-light)'; }}
+                                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.backgroundColor = 'var(--accent-light)'; }}
                                                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                                                     ><Edit className="w-3.5 h-3.5" /></button>
                                                     <button onClick={() => handleDeleteTemplate(tpl.id)} className="p-1.5 rounded-lg transition-all" style={{ color: 'var(--text-muted)' }}
@@ -364,7 +364,7 @@ export default function SettingsPage() {
                 <div className="max-w-2xl space-y-4 animate-fade-in-up">
                     <div className="surface p-6">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
+                            <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
                                 <Receipt className="w-5 h-5" />
                             </div>
                             <div>
@@ -437,7 +437,7 @@ export default function SettingsPage() {
                         </div>
 
                         {showAddUser && (
-                            <div className="rounded-xl p-5 mb-5 space-y-4 animate-scale-in" style={{ backgroundColor: 'var(--accent-light)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                            <div className="rounded-xl p-5 mb-5 space-y-4 animate-scale-in" style={{ backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent-glow)' }}>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Username *</label>
@@ -501,7 +501,7 @@ export default function SettingsPage() {
                                         >
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}>
                                                         {(u.full_name || u.fullName || 'U').charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>

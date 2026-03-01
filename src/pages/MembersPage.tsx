@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { Member, MessageTemplate } from '../types';
 import MemberForm from '../components/MemberForm';
 import { Search, Plus, Trash2, Edit, MessageCircle, AlertCircle, Users, Send, CheckSquare, Square, Cake } from 'lucide-react';
-import { format, isPast, isToday, differenceInDays, parseISO } from 'date-fns';
+import { format, isPast, isToday, parseISO } from 'date-fns';
 
 export default function MembersPage() {
     const [members, setMembers] = useState<Member[]>([]);
@@ -12,16 +12,12 @@ export default function MembersPage() {
     const [editingMember, setEditingMember] = useState<Member | null>(null);
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [loading, setLoading] = useState(true);
-
-    // Bulk messaging
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [templates, setTemplates] = useState<MessageTemplate[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [bulkSending, setBulkSending] = useState(false);
     const [bulkResults, setBulkResults] = useState<{ sent: number; failed: number } | null>(null);
-
-    // Filter
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'birthday'>('all');
 
     const emptyForm = {
@@ -103,7 +99,6 @@ export default function MembersPage() {
         } catch (err: any) { showNotification(err.message || 'Failed', 'error'); }
     };
 
-    // Bulk select
     const toggleSelect = (id: string) => {
         const next = new Set(selectedIds);
         next.has(id) ? next.delete(id) : next.add(id);
@@ -124,8 +119,8 @@ export default function MembersPage() {
         setBulkResults(null);
         try {
             const result = await api.sendBulkWhatsApp(Array.from(selectedIds), selectedTemplate);
-            const sent = result.results.filter(r => r.status === 'sent').length;
-            const failed = result.results.filter(r => r.status === 'failed').length;
+            const sent = result.results.filter((r: any) => r.status === 'sent').length;
+            const failed = result.results.filter((r: any) => r.status === 'failed').length;
             setBulkResults({ sent, failed });
             showNotification(`Sent ${sent} messages, ${failed} failed`, sent > 0 ? 'success' : 'error');
             setSelectedIds(new Set());
@@ -155,36 +150,41 @@ export default function MembersPage() {
             </div>
 
             {notification && (
-                <div className="p-4 rounded-xl flex items-center gap-3 animate-fade-in-up" style={{
+                <div className="p-3.5 rounded-xl flex items-center gap-3 animate-fade-in-up border" style={{
                     backgroundColor: notification.type === 'success' ? 'var(--success-bg)' : 'var(--danger-bg)',
                     color: notification.type === 'success' ? 'var(--success)' : 'var(--danger)',
-                    border: `1px solid ${notification.type === 'success' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                    borderColor: notification.type === 'success' ? 'rgba(5,150,105,0.2)' : 'rgba(220,38,38,0.2)',
                 }}>
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <p className="font-medium text-sm">{notification.message}</p>
                 </div>
             )}
 
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-                        <input type="text" placeholder="Search by name or phone..."
-                            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl outline-none input-field" />
-                    </div>
+                <div className="relative flex-1 sm:max-w-xs w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                    <input type="text" placeholder="Search by name or phone..."
+                        value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none transition-all duration-150"
+                        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                    />
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     {selectedIds.size > 0 && (
-                        <button onClick={() => setShowBulkModal(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all" style={{
-                            backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)'
+                        <button onClick={() => setShowBulkModal(true)} className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all" style={{
+                            backgroundColor: 'var(--success-bg)', color: 'var(--success)', border: '1px solid rgba(5,150,105,0.2)'
                         }}>
                             <Send className="w-4 h-4" /> Bulk Send ({selectedIds.size})
                         </button>
                     )}
-                    <button onClick={() => setIsAdding(true)} className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center">
-                        <Plus className="w-5 h-5" /> Add Member
+                    <button onClick={() => setIsAdding(true)}
+                        className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-sm font-medium text-white w-full sm:w-auto justify-center transition-all active:scale-[0.98]"
+                        style={{ backgroundColor: 'var(--accent)', boxShadow: '0 1px 2px rgba(13,148,136,0.2)' }}
+                    >
+                        <Plus className="w-4 h-4" /> Add Member
                     </button>
                 </div>
             </div>
@@ -193,7 +193,7 @@ export default function MembersPage() {
             <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '150ms' }}>
                 {(['all', 'active', 'expired', 'birthday'] as const).map(f => (
                     <button key={f} onClick={() => setStatusFilter(f)}
-                        className="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all capitalize flex items-center justify-center gap-1"
+                        className="flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all capitalize flex items-center justify-center gap-1"
                         style={{
                             backgroundColor: statusFilter === f ? 'var(--bg-secondary)' : 'transparent',
                             color: statusFilter === f ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -208,36 +208,41 @@ export default function MembersPage() {
 
             {/* Bulk Send Modal */}
             {showBulkModal && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-                    <div className="surface p-6 max-w-md w-full animate-scale-in" style={{ boxShadow: 'var(--shadow-lg)' }}>
-                        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-                            Send Bulk WhatsApp
-                        </h3>
+                <div className="fixed inset-0 flex items-center justify-center z-50 p-4" onClick={() => { setShowBulkModal(false); setBulkResults(null); }}>
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                    <div className="relative p-6 max-w-md w-full animate-scale-in rounded-xl border"
+                        style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-lg)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Send Bulk WhatsApp</h3>
                         <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
                             Sending to <strong style={{ color: 'var(--text-primary)' }}>{selectedIds.size} members</strong>
                         </p>
                         <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Select Template</label>
+                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Select Template</label>
                             <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-xl outline-none input-field">
+                                className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all"
+                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                                 <option value="">Choose a template...</option>
                                 {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </select>
                         </div>
                         {selectedTemplate && (
-                            <div className="p-3 rounded-xl mb-4 text-sm whitespace-pre-wrap" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                            <div className="p-3 rounded-lg mb-4 text-sm whitespace-pre-wrap" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                                 {templates.find(t => t.id === selectedTemplate)?.content}
                             </div>
                         )}
                         {bulkResults && (
-                            <div className="p-3 rounded-xl mb-4 text-sm" style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}>
+                            <div className="p-3 rounded-lg mb-4 text-sm" style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}>
                                 ✅ {bulkResults.sent} sent, {bulkResults.failed} failed
                             </div>
                         )}
                         <div className="flex gap-3">
-                            <button onClick={() => { setShowBulkModal(false); setBulkResults(null); }} className="btn-secondary flex-1">Cancel</button>
+                            <button onClick={() => { setShowBulkModal(false); setBulkResults(null); }}
+                                className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
+                                style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Cancel</button>
                             <button onClick={handleBulkSend} disabled={!selectedTemplate || bulkSending}
-                                className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
+                                className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                                style={{ backgroundColor: 'var(--accent)' }}>
                                 {bulkSending ? (
                                     <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</>
                                 ) : (
@@ -250,63 +255,66 @@ export default function MembersPage() {
             )}
 
             {/* Members Table */}
-            <div className="surface overflow-hidden animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="rounded-xl border overflow-hidden animate-fade-in-up"
+                style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-card)', animationDelay: '200ms' }}>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
-                                <th className="px-4 py-4 w-10">
+                                <th className="px-4 py-3.5 w-10">
                                     <button onClick={toggleSelectAll} style={{ color: 'var(--text-muted)' }}>
                                         {selectedIds.size === filteredMembers.length && filteredMembers.length > 0
-                                            ? <CheckSquare className="w-4 h-4" style={{ color: '#6366f1' }} />
+                                            ? <CheckSquare className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                                             : <Square className="w-4 h-4" />}
                                     </button>
                                 </th>
                                 {['Name', 'Contact', 'Membership', 'Status', 'Actions'].map(h => (
-                                    <th key={h} className={`px-4 py-4 text-sm font-medium ${h === 'Actions' ? 'text-right' : ''}`} style={{ color: 'var(--text-muted)' }}>{h}</th>
+                                    <th key={h} className={`px-4 py-3.5 text-xs font-medium uppercase tracking-wider ${h === 'Actions' ? 'text-right' : ''}`} style={{ color: 'var(--text-muted)' }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-muted)' }}>Loading...</td></tr>
+                                <tr><td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                        Loading members...
+                                    </div>
+                                </td></tr>
                             ) : filteredMembers.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-16 text-center">
-                                        <Users className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--border-color)' }} />
-                                        <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No members found</p>
-                                        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{statusFilter === 'birthday' ? 'No birthday today!' : 'Add your first member to get started'}</p>
+                                        <Users className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                                        <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>No members found</p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{statusFilter === 'birthday' ? 'No birthday today!' : 'Add your first member to get started'}</p>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredMembers.map(member => (
-                                    <tr key={member.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-color)' }}
-                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <td className="px-4 py-4">
+                                    <tr key={member.id} className="group transition-colors hover:bg-[var(--bg-tertiary)]" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td className="px-4 py-3.5">
                                             <button onClick={() => toggleSelect(member.id)} style={{ color: 'var(--text-muted)' }}>
                                                 {selectedIds.has(member.id)
-                                                    ? <CheckSquare className="w-4 h-4" style={{ color: '#6366f1' }} />
+                                                    ? <CheckSquare className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                                                     : <Square className="w-4 h-4" />}
                                             </button>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-3.5">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{member.name}</span>
+                                                <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{member.name}</span>
                                                 {isBirthdayToday(member.dob) && <span title="Birthday today!">🎂</span>}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-4 py-3.5">
                                             <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{member.phone}</div>
                                             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{member.email}</div>
                                         </td>
-                                        <td className="px-4 py-4">
-                                            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Joined: {member.joinDate}</div>
-                                            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Expires: {member.expiryDate}</div>
+                                        <td className="px-4 py-3.5">
+                                            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Joined: {member.joinDate}</div>
+                                            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Expires: {member.expiryDate}</div>
                                         </td>
-                                        <td className="px-4 py-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{
+                                        <td className="px-4 py-3.5">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold" style={{
                                                 backgroundColor: member.status === 'active' ? 'var(--success-bg)' : 'var(--danger-bg)',
                                                 color: member.status === 'active' ? 'var(--success)' : 'var(--danger)',
                                             }}>
@@ -314,23 +322,20 @@ export default function MembersPage() {
                                                 {member.status === 'active' ? 'Active' : 'Expired'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1">
+                                        <td className="px-4 py-3.5 text-right">
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => handleSendWhatsApp(member)} title="Send WhatsApp"
-                                                    className="p-2 rounded-lg transition-all" style={{ color: '#10b981' }}
-                                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--success-bg)'}
-                                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                ><MessageCircle className="w-4 h-4" /></button>
+                                                    className="p-1.5 rounded-md transition-colors hover:bg-[var(--success-bg)]" style={{ color: 'var(--success)' }}>
+                                                    <MessageCircle className="w-4 h-4" />
+                                                </button>
                                                 <button onClick={() => handleEdit(member)} title="Edit"
-                                                    className="p-2 rounded-lg transition-all" style={{ color: 'var(--text-muted)' }}
-                                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                ><Edit className="w-4 h-4" /></button>
+                                                    className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-muted)' }}>
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
                                                 <button onClick={() => handleDelete(member.id)} title="Delete"
-                                                    className="p-2 rounded-lg transition-all" style={{ color: '#ef4444' }}
-                                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--danger-bg)'}
-                                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                ><Trash2 className="w-4 h-4" /></button>
+                                                    className="p-1.5 rounded-md transition-colors hover:bg-[var(--danger-bg)]" style={{ color: 'var(--danger)' }}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

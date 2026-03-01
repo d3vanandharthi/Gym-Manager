@@ -235,7 +235,7 @@ export default function ClassesPage() {
                     <div className="lg:col-span-2 space-y-4">
                         {/* Date navigator */}
                         <div className="surface p-4 flex items-center justify-between">
-                            <button onClick={() => navigateDate(-1)} className="p-2 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"><ChevronLeft className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} /></button>
+                            <button onClick={() => navigateDate(-1)} className="p-2 rounded-lg transition-all hover:bg-[var(--bg-tertiary)]"><ChevronLeft className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} /></button>
                             <div className="text-center">
                                 <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                                     {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -243,7 +243,7 @@ export default function ClassesPage() {
                                 <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value); setSelectedClass(null); }}
                                     className="text-xs mt-1 input-field px-2 py-1 rounded" style={{ color: 'var(--text-muted)' }} />
                             </div>
-                            <button onClick={() => navigateDate(1)} className="p-2 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"><ChevronRight className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} /></button>
+                            <button onClick={() => navigateDate(1)} className="p-2 rounded-lg transition-all hover:bg-[var(--bg-tertiary)]"><ChevronRight className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} /></button>
                         </div>
 
                         {/* Class cards */}
@@ -262,13 +262,13 @@ export default function ClassesPage() {
                                         <div key={cls.id} onClick={() => handleSelectClass(cls)}
                                             className="surface p-4 cursor-pointer transition-all"
                                             style={{
-                                                borderLeft: `4px solid ${isSelected ? '#6366f1' : 'transparent'}`,
-                                                boxShadow: isSelected ? '0 0 0 1px rgba(99,102,241,0.3)' : undefined,
+                                                borderLeft: `4px solid ${isSelected ? 'var(--accent)' : 'transparent'}`,
+                                                boxShadow: isSelected ? '0 0 0 1px var(--accent-glow)' : undefined,
                                             }}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="p-2 rounded-xl" style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
+                                                    <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
                                                         <Clock className="w-5 h-5" />
                                                     </div>
                                                     <div>
@@ -322,8 +322,8 @@ export default function ClassesPage() {
                                             <div>
                                                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{b.member_name}</p>
                                                 <span className="text-xs px-1.5 py-0.5 rounded" style={{
-                                                    backgroundColor: b.status === 'checked_in' ? 'var(--success-bg)' : b.status === 'cancelled' ? 'var(--danger-bg)' : 'rgba(99,102,241,0.12)',
-                                                    color: b.status === 'checked_in' ? 'var(--success)' : b.status === 'cancelled' ? 'var(--danger)' : '#6366f1',
+                                                    backgroundColor: b.status === 'checked_in' ? 'var(--success-bg)' : b.status === 'cancelled' ? 'var(--danger-bg)' : 'var(--accent-light)',
+                                                    color: b.status === 'checked_in' ? 'var(--success)' : b.status === 'cancelled' ? 'var(--danger)' : 'var(--accent)',
                                                 }}>{b.status}</span>
                                             </div>
                                             {b.status === 'booked' && (
@@ -352,7 +352,7 @@ export default function ClassesPage() {
                     <div className="surface p-6">
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}><CalendarDays className="w-5 h-5" /></div>
+                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}><CalendarDays className="w-5 h-5" /></div>
                                 <div>
                                     <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Manage Classes</h3>
                                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Create, edit, and remove gym classes</p>
@@ -365,7 +365,7 @@ export default function ClassesPage() {
 
                         {/* Add / Edit Form */}
                         {(showAddClass || editingClass) && (
-                            <div className="rounded-xl p-5 mb-5 space-y-4 animate-scale-in" style={{ backgroundColor: 'var(--accent-light)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                            <div className="rounded-xl p-5 mb-5 space-y-4 animate-scale-in" style={{ backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent-glow)' }}>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Class Name *</label>
@@ -445,7 +445,7 @@ export default function ClassesPage() {
                                                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{cls.name}</p>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-lg" style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
+                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-lg" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
                                                     {dayLabel(cls.day_of_week)}
                                                 </span>
                                             </td>
@@ -458,7 +458,7 @@ export default function ClassesPage() {
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button onClick={() => { setEditingClass(cls); setShowAddClass(false); }}
                                                         className="p-2 rounded-lg transition-all" style={{ color: 'var(--text-muted)' }}
-                                                        onMouseEnter={e => { e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.backgroundColor = 'var(--accent-light)'; }}
+                                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.backgroundColor = 'var(--accent-light)'; }}
                                                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
                                                     ><Edit className="w-4 h-4" /></button>
                                                     <button onClick={() => handleDeleteClass(cls.id)}
@@ -567,8 +567,8 @@ export default function ClassesPage() {
                                             </div>
                                         </div>
                                         <span className="text-xs px-2 py-0.5 rounded-lg" style={{
-                                            backgroundColor: a.method === 'qr' ? 'rgba(245,158,11,0.12)' : a.method === 'booking' ? 'rgba(99,102,241,0.12)' : 'var(--success-bg)',
-                                            color: a.method === 'qr' ? '#f59e0b' : a.method === 'booking' ? '#6366f1' : 'var(--success)',
+                                            backgroundColor: a.method === 'qr' ? 'rgba(245,158,11,0.12)' : a.method === 'booking' ? 'var(--accent-light)' : 'var(--success-bg)',
+                                            color: a.method === 'qr' ? '#f59e0b' : a.method === 'booking' ? 'var(--accent)' : 'var(--success)',
                                         }}>{a.method}</span>
                                     </div>
                                 ))}

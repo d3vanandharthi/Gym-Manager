@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { LayoutDashboard, Users, CreditCard, Settings, LogOut, Smartphone, Menu, X, Moon, Sun, Shield, CalendarDays } from 'lucide-react';
+import WhatsAppModal from './WhatsAppModal';
+import { Badge } from './ui/index';
+import {
+    LayoutDashboard, Users, CreditCard, Settings, LogOut, Smartphone,
+    Menu, X, Moon, Sun, CalendarDays, ChevronDown
+} from 'lucide-react';
 
 export default function Layout() {
     const { logout, user } = useAuth();
@@ -35,35 +40,27 @@ export default function Layout() {
         return () => clearInterval(interval);
     }, []);
 
-    // Close sidebar on route change (mobile)
-    useEffect(() => {
-        setSidebarOpen(false);
-    }, [location.pathname]);
+    useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
     const userRole = user?.role || 'staff';
     const canSeeSettings = ['owner', 'admin', 'trainer'].includes(userRole);
 
-    const navItems = [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, visible: true },
-        { to: '/members', label: 'Members', icon: Users, visible: true },
-        { to: '/classes', label: 'Classes', icon: CalendarDays, visible: true },
-        { to: '/payments', label: 'Payments', icon: CreditCard, visible: true },
-        { to: '/settings', label: 'Settings', icon: Settings, visible: canSeeSettings },
-    ].filter(item => item.visible);
+    const mainNav = [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/members', label: 'Members', icon: Users },
+        { to: '/classes', label: 'Classes', icon: CalendarDays },
+        { to: '/payments', label: 'Payments', icon: CreditCard },
+    ];
 
-    const roleBadge = (role: string) => {
-        const colors: Record<string, { bg: string; text: string }> = {
-            owner: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
-            admin: { bg: 'rgba(99,102,241,0.15)', text: '#818cf8' },
-            trainer: { bg: 'rgba(16,185,129,0.15)', text: '#34d399' },
-            staff: { bg: 'rgba(148,163,184,0.15)', text: '#94a3b8' },
-        };
-        const c = colors[role] || colors.staff;
-        return (
-            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ backgroundColor: c.bg, color: c.text }}>
-                {role}
-            </span>
-        );
+    const systemNav = [
+        ...(canSeeSettings ? [{ to: '/settings', label: 'Settings', icon: Settings }] : []),
+    ];
+
+    const roleBadgeColor: Record<string, { bg: string; text: string }> = {
+        owner: { bg: 'rgba(217,119,6,0.15)', text: '#d97706' },
+        admin: { bg: 'rgba(13,148,136,0.15)', text: '#0d9488' },
+        trainer: { bg: 'rgba(5,150,105,0.15)', text: '#059669' },
+        staff: { bg: 'rgba(168,162,158,0.15)', text: '#a8a29e' },
     };
 
     return (
@@ -71,130 +68,180 @@ export default function Layout() {
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 z-40 lg:hidden"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+                    className="fixed inset-0 z-40 lg:hidden bg-black/40 backdrop-blur-sm"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
-            <aside className={`
-        fixed inset-y-0 left-0 z-50 w-[260px] flex flex-col transition-transform duration-300 ease-out lg:relative lg:translate-x-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `} style={{ backgroundColor: 'var(--bg-sidebar)' }}>
-
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 w-[260px] flex flex-col transition-transform duration-300 ease-out lg:relative lg:translate-x-0
+                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                style={{ backgroundColor: 'var(--bg-sidebar)' }}
+            >
                 {/* Logo */}
-                <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                        <div className="p-2 rounded-lg" style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}>
                             <Users className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-white font-bold text-lg tracking-tight">Gym Manager</h1>
-                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Membership System</p>
+                            <h1 className="text-white font-bold text-base tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Gym Manager</h1>
+                            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Membership System</p>
                         </div>
                     </div>
-                    <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/40 hover:text-white/80 transition-colors">
+                    <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/30 hover:text-white/60 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 py-4 px-3 space-y-1">
-                    <p className="px-3 mb-2 text-[11px] font-semibold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.25)' }}>Menu</p>
-                    {navItems.map(({ to, label, icon: Icon }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            className={({ isActive }) =>
-                                `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                                    ? 'text-white shadow-lg'
-                                    : 'text-white/50 hover:text-white/80'
-                                }`
-                            }
-                            style={({ isActive }) => isActive ? {
-                                background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-                                boxShadow: '0 4px 15px rgba(99, 102, 241, 0.35)',
-                            } : {}}
-                        >
-                            {({ isActive }) => (
-                                <>
-                                    <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`} />
-                                    {label}
-                                </>
-                            )}
-                        </NavLink>
-                    ))}
-                </nav>
+                <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-6">
+                    {/* Main section */}
+                    <div className="space-y-0.5">
+                        <p className="px-3 mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                            Main
+                        </p>
+                        {mainNav.map(({ to, label, icon: Icon }) => (
+                            <NavLink
+                                key={to}
+                                to={to}
+                                className={({ isActive }) =>
+                                    `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                                    ${isActive
+                                        ? 'text-white'
+                                        : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
+                                    }`
+                                }
+                                style={({ isActive }) => isActive ? {
+                                    backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                                    color: '#5eead4',
+                                } : {}}
+                            >
+                                {({ isActive }) => (
+                                    <>
+                                        <Icon className={`w-[18px] h-[18px] transition-transform duration-150 ${isActive ? '' : 'group-hover:scale-105'}`} />
+                                        {label}
+                                        {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-teal-400" />}
+                                    </>
+                                )}
+                            </NavLink>
+                        ))}
+                    </div>
 
-                {/* Bottom section */}
-                <div className="p-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    {/* User info */}
-                    {user && (
-                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                                {(user.fullName || user.full_name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-white text-xs font-medium truncate">{user.fullName || user.full_name}</p>
-                                <div className="mt-0.5">{roleBadge(user.role)}</div>
-                            </div>
+                    {/* System section */}
+                    {systemNav.length > 0 && (
+                        <div className="space-y-0.5">
+                            <p className="px-3 mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                                System
+                            </p>
+                            {systemNav.map(({ to, label, icon: Icon }) => (
+                                <NavLink
+                                    key={to}
+                                    to={to}
+                                    className={({ isActive }) =>
+                                        `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                                        ${isActive
+                                            ? 'text-white'
+                                            : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
+                                        }`
+                                    }
+                                    style={({ isActive }) => isActive ? {
+                                        backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                                        color: '#5eead4',
+                                    } : {}}
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            <Icon className={`w-[18px] h-[18px] transition-transform duration-150 ${isActive ? '' : 'group-hover:scale-105'}`} />
+                                            {label}
+                                            {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-teal-400" />}
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
                         </div>
                     )}
+                </nav>
 
+                {/* Bottom panel */}
+                <div className="p-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     {/* WhatsApp status */}
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all`} style={{
-                        backgroundColor: whatsappStatus.ready ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                        color: whatsappStatus.ready ? '#34d399' : '#fbbf24',
-                        border: `1px solid ${whatsappStatus.ready ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
-                    }}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${whatsappStatus.ready ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
+                    <div
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium"
+                        style={{
+                            backgroundColor: whatsappStatus.ready ? 'rgba(5,150,105,0.1)' : 'rgba(217,119,6,0.1)',
+                            color: whatsappStatus.ready ? '#34d399' : '#fbbf24',
+                            border: `1px solid ${whatsappStatus.ready ? 'rgba(5,150,105,0.15)' : 'rgba(217,119,6,0.15)'}`,
+                        }}
+                    >
+                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${whatsappStatus.ready ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         <Smartphone className="w-3.5 h-3.5" />
                         {whatsappStatus.ready ? 'WhatsApp Connected' : 'WhatsApp Offline'}
                     </div>
 
-                    {/* Dark mode toggle */}
-                    <button
-                        onClick={() => setDarkMode(!darkMode)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full transition-all duration-200"
-                        style={{ color: 'rgba(255,255,255,0.5)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)', e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)', e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                        {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                        {darkMode ? 'Light Mode' : 'Dark Mode'}
-                    </button>
+                    {/* User profile */}
+                    {user && (
+                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                            <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                                style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}
+                            >
+                                {(user.fullName || user.full_name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs font-medium truncate">{user.fullName || user.full_name}</p>
+                                <span
+                                    className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded mt-0.5 inline-block"
+                                    style={{
+                                        backgroundColor: (roleBadgeColor[user.role] || roleBadgeColor.staff).bg,
+                                        color: (roleBadgeColor[user.role] || roleBadgeColor.staff).text,
+                                    }}
+                                >
+                                    {user.role}
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
-                    {/* Logout */}
-                    <button
-                        onClick={logout}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full transition-all duration-200"
-                        style={{ color: 'rgba(255,255,255,0.5)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)', e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)', e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                        <LogOut className="w-5 h-5" />
-                        Logout
-                    </button>
+                    {/* Dark mode + Logout */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setDarkMode(!darkMode)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-white/35 hover:text-white/60 hover:bg-white/[0.04]"
+                        >
+                            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                            {darkMode ? 'Light' : 'Dark'}
+                        </button>
+                        <button
+                            onClick={logout}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-white/35 hover:text-red-400 hover:bg-red-400/[0.08]"
+                        >
+                            <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                    </div>
                 </div>
             </aside>
 
-            {/* Main content */}
+            {/* Main content area */}
             <div className="flex-1 flex flex-col min-h-screen">
-                {/* Top bar (mobile) */}
-                <header className="sticky top-0 z-30 lg:hidden" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                {/* Mobile header */}
+                <header
+                    className="sticky top-0 z-30 lg:hidden"
+                    style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}
+                >
                     <div className="flex items-center justify-between px-4 h-14">
                         <button onClick={() => setSidebarOpen(true)} style={{ color: 'var(--text-secondary)' }}>
-                            <Menu className="w-6 h-6" />
+                            <Menu className="w-5 h-5" />
                         </button>
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                                <Users className="w-4 h-4 text-white" />
+                            <div className="p-1.5 rounded-md" style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}>
+                                <Users className="w-3.5 h-3.5 text-white" />
                             </div>
-                            <h1 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Gym Manager</h1>
+                            <h1 className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>Gym Manager</h1>
                         </div>
                         <button onClick={() => setDarkMode(!darkMode)} style={{ color: 'var(--text-secondary)' }}>
-                            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </button>
                     </div>
                 </header>

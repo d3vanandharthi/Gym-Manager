@@ -17,106 +17,129 @@ export default function LoginPage() {
         try {
             await login(username, password);
         } catch (err) {
-            setError('Invalid credentials. Use admin/admin');
+            setError('Invalid credentials. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
-        }}>
-            {/* Glow effect */}
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-primary)' }}>
+            {/* Subtle background accent */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20"
-                    style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)' }}
+                <div
+                    className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.04]"
+                    style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }}
                 />
             </div>
 
-            <div className="animate-scale-in relative w-full max-w-md">
+            <div className="animate-scale-in relative w-full max-w-sm">
                 {/* Card */}
-                <div className="backdrop-blur-xl p-8 rounded-3xl border" style={{
-                    backgroundColor: 'rgba(255,255,255,0.06)',
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    boxShadow: '0 25px 50px rgba(0,0,0,0.4), 0 0 100px rgba(99,102,241,0.1)',
-                }}>
+                <div
+                    className="p-8 rounded-2xl border"
+                    style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderColor: 'var(--border-color)',
+                        boxShadow: 'var(--shadow-lg)',
+                    }}
+                >
+                    {/* Logo */}
                     <div className="flex justify-center mb-6">
-                        <div className="p-4 rounded-2xl" style={{
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                            boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-                        }}>
-                            <Users className="w-8 h-8 text-white" />
+                        <div
+                            className="p-3 rounded-xl"
+                            style={{
+                                background: 'linear-gradient(135deg, #0d9488, #059669)',
+                                boxShadow: '0 8px 24px rgba(13, 148, 136, 0.25)',
+                            }}
+                        >
+                            <Users className="w-7 h-7 text-white" />
                         </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-center text-white mb-1">Gym Manager</h1>
-                    <p className="text-center mb-8" style={{ color: 'rgba(255,255,255,0.45)' }}>Sign in to manage memberships</p>
+
+                    <h1 className="text-xl font-bold text-center mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+                        Gym Manager
+                    </h1>
+                    <p className="text-center text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
+                        Sign in to manage memberships
+                    </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Username */}
                         <div>
-                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Username</label>
+                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Username</label>
                             <input
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl outline-none transition-all text-white placeholder:text-white/30"
+                                className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all duration-150"
                                 style={{
-                                    backgroundColor: 'rgba(255,255,255,0.06)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-primary)',
                                 }}
-                                onFocus={e => e.target.style.borderColor = '#6366f1'}
-                                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                                placeholder="admin"
+                                onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)'; }}
+                                onBlur={e => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                                placeholder="Enter username"
                                 required
                             />
                         </div>
+
+                        {/* Password */}
                         <div>
-                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Password</label>
+                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Password</label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 pr-11 rounded-xl outline-none transition-all text-white placeholder:text-white/30"
+                                    className="w-full px-3.5 py-2.5 pr-10 rounded-lg text-sm outline-none transition-all duration-150"
                                     style={{
-                                        backgroundColor: 'rgba(255,255,255,0.06)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--text-primary)',
                                     }}
-                                    onFocus={e => e.target.style.borderColor = '#6366f1'}
-                                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                                    placeholder="admin"
+                                    onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)'; }}
+                                    onBlur={e => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                                    placeholder="Enter password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                                    style={{ color: 'rgba(255,255,255,0.3)' }}
+                                    style={{ color: 'var(--text-muted)' }}
                                 >
-                                    {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
+
+                        {/* Error */}
                         {error && (
-                            <div className="p-3 rounded-xl text-sm flex items-center gap-2" style={{
-                                backgroundColor: 'rgba(239,68,68,0.12)',
-                                color: '#f87171',
-                                border: '1px solid rgba(239,68,68,0.2)',
-                            }}>
+                            <div
+                                className="p-3 rounded-lg text-sm flex items-center gap-2"
+                                style={{
+                                    backgroundColor: 'var(--danger-bg)',
+                                    color: 'var(--danger)',
+                                    border: '1px solid rgba(220,38,38,0.2)',
+                                }}
+                            >
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                                 {error}
                             </div>
                         )}
+
+                        {/* Submit */}
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-3 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-60"
+                            className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all duration-150 disabled:opacity-60 active:scale-[0.98]"
                             style={{
-                                background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-                                boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
+                                backgroundColor: 'var(--accent)',
+                                boxShadow: '0 1px 3px rgba(13,148,136,0.3)',
                             }}
-                            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 30px rgba(99,102,241,0.5)'}
-                            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(99,102,241,0.4)'}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--accent-hover)'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--accent)'}
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -127,6 +150,11 @@ export default function LoginPage() {
                         </button>
                     </form>
                 </div>
+
+                {/* Footer text */}
+                <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
+                    Gym Manager &mdash; Membership Management System
+                </p>
             </div>
         </div>
     );

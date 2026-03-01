@@ -38,10 +38,10 @@ export default function DashboardPage() {
 
     const activityIcon = (type: string) => {
         switch (type) {
-            case 'member_added': return <UserCheck className="w-4 h-4" style={{ color: '#10b981' }} />;
-            case 'member_deleted': return <UserX className="w-4 h-4" style={{ color: '#ef4444' }} />;
-            case 'payment_received': return <IndianRupee className="w-4 h-4" style={{ color: '#6366f1' }} />;
-            case 'whatsapp_sent': return <MessageCircle className="w-4 h-4" style={{ color: '#22c55e' }} />;
+            case 'member_added': return <UserCheck className="w-4 h-4" style={{ color: 'var(--success)' }} />;
+            case 'member_deleted': return <UserX className="w-4 h-4" style={{ color: 'var(--danger)' }} />;
+            case 'payment_received': return <IndianRupee className="w-4 h-4" style={{ color: 'var(--accent)' }} />;
+            case 'whatsapp_sent': return <MessageCircle className="w-4 h-4" style={{ color: 'var(--success)' }} />;
             default: return <Activity className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />;
         }
     };
@@ -49,10 +49,10 @@ export default function DashboardPage() {
     if (loading) {
         return (
             <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="skeleton h-28 rounded-2xl" />)}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 stagger-children">
+                    {[1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton h-28 rounded-xl" />)}
                 </div>
-                <div className="skeleton h-80 rounded-2xl" />
+                <div className="skeleton h-80 rounded-xl" />
             </div>
         );
     }
@@ -67,17 +67,25 @@ export default function DashboardPage() {
             {/* Stats Cards */}
             {stats && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 stagger-children">
-                    <StatsCard title="Total Members" value={stats.totalMembers} icon={Users} color="indigo" />
-                    <StatsCard title="Active" value={stats.activeMembers} icon={UserCheck} color="emerald" />
-                    <StatsCard title="Expired" value={stats.expiredMembers} icon={UserX} color="rose" />
-                    <StatsCard title="Today's Check-ins" value={todayCheckins} icon={CalendarCheck} color="amber" />
-                    <StatsCard title="Monthly Revenue" value={`₹${stats.monthlyRevenue.toLocaleString()}`} icon={IndianRupee} color="violet" trend={`₹${stats.totalRevenue.toLocaleString()} total`} />
+                    <StatsCard title="Total Members" value={stats.totalMembers} icon={Users} />
+                    <StatsCard title="Active" value={stats.activeMembers} icon={UserCheck} />
+                    <StatsCard title="Expired" value={stats.expiredMembers} icon={UserX} />
+                    <StatsCard title="Today's Check-ins" value={todayCheckins} icon={CalendarCheck} />
+                    <StatsCard title="Monthly Revenue" value={`₹${stats.monthlyRevenue.toLocaleString()}`} icon={IndianRupee} />
                 </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Revenue Chart */}
-                <div className="lg:col-span-2 surface p-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                <div
+                    className="lg:col-span-2 p-6 rounded-xl border animate-fade-in-up"
+                    style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderColor: 'var(--border-color)',
+                        boxShadow: 'var(--shadow-card)',
+                        animationDelay: '200ms',
+                    }}
+                >
                     <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Revenue</h3>
                     {revenueData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={280}>
@@ -87,7 +95,7 @@ export default function DashboardPage() {
                                 <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
                                 <Tooltip
                                     contentStyle={{
-                                        borderRadius: '12px',
+                                        borderRadius: '10px',
                                         border: '1px solid var(--border-color)',
                                         backgroundColor: 'var(--bg-secondary)',
                                         color: 'var(--text-primary)',
@@ -96,7 +104,7 @@ export default function DashboardPage() {
                                     }}
                                     formatter={(value: any) => [`₹${value}`, 'Revenue']}
                                 />
-                                <Bar dataKey="revenue" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                                <Bar dataKey="revenue" fill="#0d9488" radius={[6, 6, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
@@ -107,9 +115,17 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Expiring Soon */}
-                <div className="surface p-6 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                <div
+                    className="p-6 rounded-xl border animate-fade-in-up"
+                    style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderColor: 'var(--border-color)',
+                        boxShadow: 'var(--shadow-card)',
+                        animationDelay: '300ms',
+                    }}
+                >
                     <div className="flex items-center gap-2 mb-4">
-                        <AlertTriangle className="w-5 h-5" style={{ color: '#f59e0b' }} />
+                        <AlertTriangle className="w-5 h-5" style={{ color: 'var(--warning)' }} />
                         <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Expiring Soon</h3>
                     </div>
                     {expiring.length > 0 ? (
@@ -120,7 +136,10 @@ export default function DashboardPage() {
                                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{m.name}</p>
                                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{m.phone}</p>
                                     </div>
-                                    <span className="text-xs font-medium px-2.5 py-1 rounded-lg" style={{ backgroundColor: 'var(--warning-bg)', color: '#f59e0b' }}>
+                                    <span
+                                        className="text-xs font-medium px-2.5 py-1 rounded-md"
+                                        style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning)' }}
+                                    >
                                         {m.expiryDate}
                                     </span>
                                 </div>
@@ -135,7 +154,15 @@ export default function DashboardPage() {
             </div>
 
             {/* Activity Feed */}
-            <div className="surface p-6 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+            <div
+                className="p-6 rounded-xl border animate-fade-in-up"
+                style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderColor: 'var(--border-color)',
+                    boxShadow: 'var(--shadow-card)',
+                    animationDelay: '400ms',
+                }}
+            >
                 <div className="flex items-center gap-2 mb-4">
                     <Clock className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                     <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Recent Activity</h3>
@@ -143,7 +170,7 @@ export default function DashboardPage() {
                 {activity.length > 0 ? (
                     <div className="space-y-1">
                         {activity.map(a => (
-                            <div key={a.id} className="flex items-center gap-3 py-2.5 px-2 rounded-lg transition-colors hover:opacity-80" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <div key={a.id} className="flex items-center gap-3 py-2.5 px-2 rounded-lg transition-colors" style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>{activityIcon(a.type)}</div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{a.description}</p>
