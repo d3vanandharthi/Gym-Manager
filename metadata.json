@@ -1,0 +1,5 @@
+{
+  "name": "Gym Manager",
+  "description": "Offline gym membership management app with WhatsApp notifications.",
+  "requestFramePermissions": []
+}
