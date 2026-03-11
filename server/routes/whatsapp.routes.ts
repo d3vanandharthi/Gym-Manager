@@ -18,8 +18,20 @@ let isWhatsAppReady = false;
 const whatsappClient = new Client({
     authStrategy: new LocalAuth({ dataPath: path.join(ROOT_DIR, '.wwebjs_auth') }),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    }
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu',
+            '--disable-blink-features=AutomationControlled',
+            '--window-size=1280,800',
+        ],
+        userDataDir: undefined,
+    },
 });
 
 whatsappClient.on('qr', async (qr: string) => {
@@ -36,6 +48,12 @@ whatsappClient.on('ready', () => {
 
 whatsappClient.on('authenticated', () => {
     console.log('WhatsApp Client is authenticated!');
+});
+
+whatsappClient.on('auth_failure', (msg: any) => {
+    console.error('WhatsApp auth failed:', msg);
+    isWhatsAppReady = false;
+    qrCodeDataUrl = null;
 });
 
 whatsappClient.on('disconnected', (reason: any) => {
@@ -57,6 +75,19 @@ router.get('/status', (req: Request, res: Response) => {
         ready: isWhatsAppReady,
         qrCode: qrCodeDataUrl
     });
+});
+
+// POST reinitialize WhatsApp client (logout + fresh QR)
+router.post('/reinitialize', async (req: Request, res: Response) => {
+    try {
+        isWhatsAppReady = false;
+        qrCodeDataUrl = null;
+        await whatsappClient.destroy();
+        await whatsappClient.initialize();
+        res.json({ success: true, message: 'WhatsApp client reinitialized' });
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST send single WhatsApp message
