@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import {
     LayoutDashboard, Users, CreditCard, Settings,
-    LogOut, Smartphone, Moon, Sun, CalendarDays, Dumbbell
+    LogOut, Smartphone, Moon, Sun, CalendarDays, Dumbbell, Pin, PinOff
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -19,7 +19,8 @@ import { cn } from '@/src/lib/utils';
 // ─── Sidebar content (must live inside SidebarProvider) ─────────────────────
 
 function SidebarContent() {
-    const { open } = useSidebar();
+    const { open, pinned, setPinned } = useSidebar();
+    const isExpanded = pinned || open;
     const { logout, user } = useAuth();
 
     const [darkMode, setDarkMode] = useState(() => {
@@ -68,7 +69,7 @@ function SidebarContent() {
             {/* ── Top: Logo + Nav ── */}
             <div className="flex flex-col gap-1 flex-1 overflow-hidden">
 
-                {/* Logo */}
+                {/* Logo row with Pin button */}
                 <div
                     className="flex items-center gap-3 mb-5 pb-4"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
@@ -83,14 +84,14 @@ function SidebarContent() {
                         <Dumbbell size={18} className="text-white" />
                     </div>
                     <AnimatePresence>
-                        {open && (
+                        {isExpanded && (
                             <motion.div
                                 key="logo-text"
                                 initial={{ opacity: 0, x: -8 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -8 }}
                                 transition={{ duration: 0.18 }}
-                                className="overflow-hidden whitespace-nowrap"
+                                className="overflow-hidden whitespace-nowrap flex-1"
                             >
                                 <p className="text-white font-bold text-sm leading-tight tracking-tight">
                                     Gym Manager
@@ -101,11 +102,32 @@ function SidebarContent() {
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {/* Pin / Unpin button — only visible when expanded */}
+                    <AnimatePresence>
+                        {isExpanded && (
+                            <motion.button
+                                key="pin-btn"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.15 }}
+                                onClick={() => setPinned(!pinned)}
+                                title={pinned ? 'Unpin sidebar' : 'Pin sidebar open'}
+                                className="flex-shrink-0 p-1.5 rounded-lg transition-all hover:bg-white/10"
+                                style={{
+                                    color: pinned ? '#2dd4bf' : 'rgba(255,255,255,0.3)',
+                                }}
+                            >
+                                {pinned ? <Pin size={14} /> : <PinOff size={14} />}
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Section label */}
                 <AnimatePresence>
-                    {open && (
+                    {isExpanded && (
                         <motion.p
                             key="main-label"
                             initial={{ opacity: 0 }}
@@ -140,7 +162,7 @@ function SidebarContent() {
                         style={{ color: whatsappStatus.ready ? '#34d399' : '#fbbf24' }}
                     />
                     <AnimatePresence>
-                        {open && (
+                        {isExpanded && (
                             <motion.span
                                 key="wa-text"
                                 initial={{ opacity: 0 }}
@@ -174,7 +196,7 @@ function SidebarContent() {
                             {(user.fullName || user.full_name || 'U').charAt(0).toUpperCase()}
                         </div>
                         <AnimatePresence>
-                            {open && (
+                            {isExpanded && (
                                 <motion.div
                                     key="user-info"
                                     initial={{ opacity: 0, x: -8 }}
@@ -227,14 +249,22 @@ function SidebarContent() {
 
 export default function Layout() {
     const [open, setOpen] = useState(false);
+    const [pinned, setPinned] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('sidebarPinned') || 'false'); } catch { return false; }
+    });
     const location = useLocation();
+
+    // Persist pin state
+    useEffect(() => {
+        localStorage.setItem('sidebarPinned', JSON.stringify(pinned));
+    }, [pinned]);
 
     // Close mobile sidebar on route change
     useEffect(() => { setOpen(false); }, [location.pathname]);
 
     return (
         <div className="flex h-screen w-full overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
-            <Sidebar open={open} setOpen={setOpen} animate={true}>
+            <Sidebar open={pinned || open} setOpen={setOpen} animate={true} pinned={pinned} setPinned={setPinned}>
                 <SidebarBody className="h-full">
                     <SidebarContent />
                 </SidebarBody>

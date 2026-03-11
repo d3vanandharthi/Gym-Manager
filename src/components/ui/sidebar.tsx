@@ -17,6 +17,8 @@ interface SidebarContextProps {
     open: boolean;
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
     animate: boolean;
+    pinned: boolean;
+    setPinned: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -34,17 +36,24 @@ export const SidebarProvider = ({
     open: openProp,
     setOpen: setOpenProp,
     animate = true,
+    pinned: pinnedProp,
+    setPinned: setPinnedProp,
 }: {
     children: React.ReactNode;
     open?: boolean;
     setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
     animate?: boolean;
+    pinned?: boolean;
+    setPinned?: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
     const [openState, setOpenState] = useState(false);
+    const [pinnedState, setPinnedState] = useState(false);
     const open = openProp !== undefined ? openProp : openState;
     const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
+    const pinned = pinnedProp !== undefined ? pinnedProp : pinnedState;
+    const setPinned = setPinnedProp !== undefined ? setPinnedProp : setPinnedState;
     return (
-        <SidebarContext.Provider value={{ open, setOpen, animate }}>
+        <SidebarContext.Provider value={{ open, setOpen, animate, pinned, setPinned }}>
             {children}
         </SidebarContext.Provider>
     );
@@ -57,13 +66,17 @@ export const Sidebar = ({
     open,
     setOpen,
     animate = true,
+    pinned,
+    setPinned,
 }: {
     children: React.ReactNode;
     open?: boolean;
     setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
     animate?: boolean;
+    pinned?: boolean;
+    setPinned?: React.Dispatch<React.SetStateAction<boolean>>;
 }) => (
-    <SidebarProvider open={open} setOpen={setOpen} animate={animate}>
+    <SidebarProvider open={open} setOpen={setOpen} animate={animate} pinned={pinned} setPinned={setPinned}>
         {children}
     </SidebarProvider>
 );
@@ -77,14 +90,15 @@ export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => (
     </>
 );
 
-// ─── Desktop Sidebar (hover to expand/collapse) ─────────────────────────────
+// ─── Desktop Sidebar (hover to expand, or pinned open) ──────────────────────
 
 export const DesktopSidebar = ({
     className,
     children,
     ...props
 }: React.ComponentProps<typeof motion.div>) => {
-    const { open, setOpen, animate } = useSidebar();
+    const { open, setOpen, animate, pinned } = useSidebar();
+    const isOpen = pinned || open;
     return (
         <motion.div
             className={cn(
@@ -92,10 +106,10 @@ export const DesktopSidebar = ({
                 className
             )}
             style={{ backgroundColor: "var(--bg-sidebar)" }}
-            animate={{ width: animate ? (open ? 280 : 68) : 280 }}
+            animate={{ width: animate ? (isOpen ? 280 : 68) : 280 }}
             transition={{ type: "spring", stiffness: 250, damping: 28, mass: 0.8 }}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
+            onMouseEnter={() => !pinned && setOpen(true)}
+            onMouseLeave={() => !pinned && setOpen(false)}
             {...props}
         >
             <div className="flex flex-col h-full px-3 py-4 overflow-hidden">
@@ -177,7 +191,8 @@ export const SidebarLink = ({
     link: SidebarLinkConfig;
     className?: string;
 }) => {
-    const { open, animate } = useSidebar();
+    const { open, animate, pinned } = useSidebar();
+    const isExpanded = pinned || open;
 
     const inner = (isActive: boolean) => (
         <>
@@ -194,9 +209,9 @@ export const SidebarLink = ({
             {/* Label — animated in/out */}
             <motion.span
                 animate={{
-                    display: animate ? (open ? "inline-block" : "none") : "inline-block",
-                    opacity: animate ? (open ? 1 : 0) : 1,
-                    x: animate ? (open ? 0 : -4) : 0,
+                    display: animate ? (isExpanded ? "inline-block" : "none") : "inline-block",
+                    opacity: animate ? (isExpanded ? 1 : 0) : 1,
+                    x: animate ? (isExpanded ? 0 : -4) : 0,
                 }}
                 transition={{ duration: 0.15 }}
                 className={cn(
@@ -208,7 +223,7 @@ export const SidebarLink = ({
             </motion.span>
 
             {/* Active dot */}
-            {isActive && open && (
+            {isActive && isExpanded && (
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -233,7 +248,7 @@ export const SidebarLink = ({
             <button
                 onClick={link.onClick}
                 className={itemClass(false)}
-                title={!open ? link.label : undefined}
+                title={!isExpanded ? link.label : undefined}
             >
                 {inner(false)}
             </button>
@@ -245,7 +260,7 @@ export const SidebarLink = ({
         <NavLink
             to={link.href}
             className={({ isActive }) => itemClass(isActive)}
-            title={!open ? link.label : undefined}
+            title={!isExpanded ? link.label : undefined}
         >
             {({ isActive }) => inner(isActive)}
         </NavLink>
