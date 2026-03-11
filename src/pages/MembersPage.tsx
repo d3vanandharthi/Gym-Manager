@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Member, MessageTemplate } from '../types';
 import MemberForm from '../components/MemberForm';
-import { Search, Plus, Trash2, Edit, MessageCircle, AlertCircle, Users, Send, CheckSquare, Square, Cake } from 'lucide-react';
+import { Search, Plus, Trash2, Edit, MessageCircle, AlertCircle, Users, Send, CheckSquare, Square, Cake, X } from 'lucide-react';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 
 export default function MembersPage() {
@@ -19,6 +19,7 @@ export default function MembersPage() {
     const [bulkSending, setBulkSending] = useState(false);
     const [bulkResults, setBulkResults] = useState<{ sent: number; failed: number } | null>(null);
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'birthday'>('all');
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
     const emptyForm = {
         name: '', phone: '', email: '', dob: '', address: '', emergencyContact: '', emergencyPhone: '', gender: '', bloodGroup: '',
@@ -72,11 +73,20 @@ export default function MembersPage() {
         } catch (err) { showNotification('Failed to save member', 'error'); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure?')) {
-            try {
-                await api.deleteMember(id); showNotification('Member deleted', 'success'); fetchMembers();
-            } catch (err) { showNotification('Failed to delete', 'error'); }
+    const handleDelete = (id: string) => {
+        setPendingDeleteId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        try {
+            await api.deleteMember(pendingDeleteId);
+            showNotification('Member deleted', 'success');
+            fetchMembers();
+        } catch (err) {
+            showNotification('Failed to delete member', 'error');
+        } finally {
+            setPendingDeleteId(null);
         }
     };
 
@@ -206,6 +216,49 @@ export default function MembersPage() {
                 ))}
             </div>
 
+            {/* ── Delete Confirm Modal ── */}
+            {pendingDeleteId && (() => {
+                const m = members.find(x => x.id === pendingDeleteId);
+                return (
+                    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPendingDeleteId(null)} />
+                        <div className="relative p-6 max-w-sm w-full rounded-2xl border animate-scale-in"
+                            style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-lg)' }}
+                        >
+                            <button onClick={() => setPendingDeleteId(null)}
+                                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+                                style={{ color: 'var(--text-muted)' }}>
+                                <X className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'var(--danger-bg)' }}>
+                                    <Trash2 className="w-5 h-5" style={{ color: 'var(--danger)' }} />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Delete Member</h3>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>This cannot be undone</p>
+                                </div>
+                            </div>
+                            <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
+                                Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{m?.name}</strong>? All their data will be permanently removed.
+                            </p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setPendingDeleteId(null)}
+                                    className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--bg-tertiary)]"
+                                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                                    Cancel
+                                </button>
+                                <button onClick={confirmDelete}
+                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                                    style={{ backgroundColor: 'var(--danger)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}>
+                                    <Trash2 className="w-4 h-4" /> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* Bulk Send Modal */}
             {showBulkModal && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4" onClick={() => { setShowBulkModal(false); setBulkResults(null); }}>
@@ -323,7 +376,7 @@ export default function MembersPage() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3.5 text-right">
-                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-1 transition-opacity">
                                                 <button onClick={() => handleSendWhatsApp(member)} title="Send WhatsApp"
                                                     className="p-1.5 rounded-md transition-colors hover:bg-[var(--success-bg)]" style={{ color: 'var(--success)' }}>
                                                     <MessageCircle className="w-4 h-4" />

@@ -1,256 +1,254 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import WhatsAppModal from './WhatsAppModal';
-import { Badge } from './ui/index';
 import {
-    LayoutDashboard, Users, CreditCard, Settings, LogOut, Smartphone,
-    Menu, X, Moon, Sun, CalendarDays, ChevronDown
+    LayoutDashboard, Users, CreditCard, Settings,
+    LogOut, Smartphone, Moon, Sun, CalendarDays, Dumbbell
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+    Sidebar,
+    SidebarBody,
+    SidebarLink,
+    useSidebar,
+    SidebarLinkConfig,
+} from './ui/sidebar';
+import { cn } from '@/src/lib/utils';
 
-export default function Layout() {
+// ─── Sidebar content (must live inside SidebarProvider) ─────────────────────
+
+function SidebarContent() {
+    const { open } = useSidebar();
     const { logout, user } = useAuth();
-    const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('darkMode');
         return saved ? JSON.parse(saved) : false;
     });
-    const [whatsappStatus, setWhatsappStatus] = useState<{ ready: boolean; qrCode: string | null }>({ ready: false, qrCode: null });
+
+    const [whatsappStatus, setWhatsappStatus] = useState<{ ready: boolean }>({ ready: false });
 
     useEffect(() => {
-        if (darkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        if (darkMode) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
         localStorage.setItem('darkMode', JSON.stringify(darkMode));
     }, [darkMode]);
 
     useEffect(() => {
-        const checkStatus = async () => {
-            try {
-                const status = await api.getWhatsAppStatus();
-                setWhatsappStatus(status);
-            } catch (err) { /* ignore */ }
+        const check = async () => {
+            try { const s = await api.getWhatsAppStatus(); setWhatsappStatus(s); } catch { }
         };
-        checkStatus();
-        const interval = setInterval(checkStatus, 5000);
-        return () => clearInterval(interval);
+        check();
+        const t = setInterval(check, 5000);
+        return () => clearInterval(t);
     }, []);
-
-    useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
     const userRole = user?.role || 'staff';
     const canSeeSettings = ['owner', 'admin', 'trainer'].includes(userRole);
 
-    const mainNav = [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/members', label: 'Members', icon: Users },
-        { to: '/classes', label: 'Classes', icon: CalendarDays },
-        { to: '/payments', label: 'Payments', icon: CreditCard },
+    const mainLinks: SidebarLinkConfig[] = [
+        { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
+        { label: 'Members',   href: '/members',   icon: <Users size={18} /> },
+        { label: 'Classes',   href: '/classes',   icon: <CalendarDays size={18} /> },
+        { label: 'Payments',  href: '/payments',  icon: <CreditCard size={18} /> },
+        ...(canSeeSettings ? [{ label: 'Settings', href: '/settings', icon: <Settings size={18} /> }] : []),
     ];
 
-    const systemNav = [
-        ...(canSeeSettings ? [{ to: '/settings', label: 'Settings', icon: Settings }] : []),
-    ];
-
-    const roleBadgeColor: Record<string, { bg: string; text: string }> = {
-        owner: { bg: 'rgba(217,119,6,0.15)', text: '#d97706' },
-        admin: { bg: 'rgba(13,148,136,0.15)', text: '#0d9488' },
-        trainer: { bg: 'rgba(5,150,105,0.15)', text: '#059669' },
-        staff: { bg: 'rgba(168,162,158,0.15)', text: '#a8a29e' },
+    const roleBadgeStyle: Record<string, React.CSSProperties> = {
+        owner:   { backgroundColor: 'rgba(217,119,6,0.2)',  color: '#d97706' },
+        admin:   { backgroundColor: 'rgba(13,148,136,0.2)', color: '#2dd4bf' },
+        trainer: { backgroundColor: 'rgba(5,150,105,0.2)',  color: '#34d399' },
+        staff:   { backgroundColor: 'rgba(168,162,158,0.2)',color: '#a8a29e' },
     };
 
     return (
-        <div className="min-h-screen flex" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-            {/* Mobile overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 z-40 lg:hidden bg-black/40 backdrop-blur-sm"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+        <div className="flex flex-col h-full justify-between">
 
-            {/* Sidebar */}
-            <aside
-                className={`fixed inset-y-0 left-0 z-50 w-[260px] flex flex-col transition-transform duration-300 ease-out lg:relative lg:translate-x-0
-                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                style={{ backgroundColor: 'var(--bg-sidebar)' }}
-            >
+            {/* ── Top: Logo + Nav ── */}
+            <div className="flex flex-col gap-1 flex-1 overflow-hidden">
+
                 {/* Logo */}
-                <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg" style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}>
-                            <Users className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-white font-bold text-base tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Gym Manager</h1>
-                            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Membership System</p>
-                        </div>
-                    </div>
-                    <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/30 hover:text-white/60 transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Navigation */}
-                <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-6">
-                    {/* Main section */}
-                    <div className="space-y-0.5">
-                        <p className="px-3 mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                            Main
-                        </p>
-                        {mainNav.map(({ to, label, icon: Icon }) => (
-                            <NavLink
-                                key={to}
-                                to={to}
-                                className={({ isActive }) =>
-                                    `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
-                                    ${isActive
-                                        ? 'text-white'
-                                        : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
-                                    }`
-                                }
-                                style={({ isActive }) => isActive ? {
-                                    backgroundColor: 'rgba(13, 148, 136, 0.15)',
-                                    color: '#5eead4',
-                                } : {}}
-                            >
-                                {({ isActive }) => (
-                                    <>
-                                        <Icon className={`w-[18px] h-[18px] transition-transform duration-150 ${isActive ? '' : 'group-hover:scale-105'}`} />
-                                        {label}
-                                        {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-teal-400" />}
-                                    </>
-                                )}
-                            </NavLink>
-                        ))}
-                    </div>
-
-                    {/* System section */}
-                    {systemNav.length > 0 && (
-                        <div className="space-y-0.5">
-                            <p className="px-3 mb-2 text-[10px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                                System
-                            </p>
-                            {systemNav.map(({ to, label, icon: Icon }) => (
-                                <NavLink
-                                    key={to}
-                                    to={to}
-                                    className={({ isActive }) =>
-                                        `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
-                                        ${isActive
-                                            ? 'text-white'
-                                            : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
-                                        }`
-                                    }
-                                    style={({ isActive }) => isActive ? {
-                                        backgroundColor: 'rgba(13, 148, 136, 0.15)',
-                                        color: '#5eead4',
-                                    } : {}}
-                                >
-                                    {({ isActive }) => (
-                                        <>
-                                            <Icon className={`w-[18px] h-[18px] transition-transform duration-150 ${isActive ? '' : 'group-hover:scale-105'}`} />
-                                            {label}
-                                            {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-teal-400" />}
-                                        </>
-                                    )}
-                                </NavLink>
-                            ))}
-                        </div>
-                    )}
-                </nav>
-
-                {/* Bottom panel */}
-                <div className="p-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    {/* WhatsApp status */}
+                <div
+                    className="flex items-center gap-3 mb-5 pb-4"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+                >
                     <div
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium"
+                        className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center"
                         style={{
-                            backgroundColor: whatsappStatus.ready ? 'rgba(5,150,105,0.1)' : 'rgba(217,119,6,0.1)',
-                            color: whatsappStatus.ready ? '#34d399' : '#fbbf24',
-                            border: `1px solid ${whatsappStatus.ready ? 'rgba(5,150,105,0.15)' : 'rgba(217,119,6,0.15)'}`,
+                            background: 'linear-gradient(135deg, #0d9488, #059669)',
+                            boxShadow: '0 4px 12px rgba(13,148,136,0.35)',
                         }}
                     >
-                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${whatsappStatus.ready ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                        <Smartphone className="w-3.5 h-3.5" />
-                        {whatsappStatus.ready ? 'WhatsApp Connected' : 'WhatsApp Offline'}
+                        <Dumbbell size={18} className="text-white" />
                     </div>
-
-                    {/* User profile */}
-                    {user && (
-                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
-                            <div
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-                                style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}
+                    <AnimatePresence>
+                        {open && (
+                            <motion.div
+                                key="logo-text"
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -8 }}
+                                transition={{ duration: 0.18 }}
+                                className="overflow-hidden whitespace-nowrap"
                             >
-                                {(user.fullName || user.full_name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-white text-xs font-medium truncate">{user.fullName || user.full_name}</p>
-                                <span
-                                    className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded mt-0.5 inline-block"
-                                    style={{
-                                        backgroundColor: (roleBadgeColor[user.role] || roleBadgeColor.staff).bg,
-                                        color: (roleBadgeColor[user.role] || roleBadgeColor.staff).text,
-                                    }}
-                                >
-                                    {user.role}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Dark mode + Logout */}
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => setDarkMode(!darkMode)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-white/35 hover:text-white/60 hover:bg-white/[0.04]"
-                        >
-                            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                            {darkMode ? 'Light' : 'Dark'}
-                        </button>
-                        <button
-                            onClick={logout}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-white/35 hover:text-red-400 hover:bg-red-400/[0.08]"
-                        >
-                            <LogOut className="w-4 h-4" /> Logout
-                        </button>
-                    </div>
+                                <p className="text-white font-bold text-sm leading-tight tracking-tight">
+                                    Gym Manager
+                                </p>
+                                <p className="text-[10px] text-white/30 leading-tight">
+                                    Membership System
+                                </p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-            </aside>
 
-            {/* Main content area */}
-            <div className="flex-1 flex flex-col min-h-screen">
-                {/* Mobile header */}
-                <header
-                    className="sticky top-0 z-30 lg:hidden"
-                    style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}
+                {/* Section label */}
+                <AnimatePresence>
+                    {open && (
+                        <motion.p
+                            key="main-label"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="text-[10px] font-semibold tracking-[0.18em] uppercase px-2 mb-1 text-white/25"
+                        >
+                            Main
+                        </motion.p>
+                    )}
+                </AnimatePresence>
+
+                {/* Nav links */}
+                <div className="flex flex-col gap-0.5">
+                    {mainLinks.map(link => (
+                        <SidebarLink key={link.href} link={link} />
+                    ))}
+                </div>
+
+                {/* WhatsApp chip */}
+                <div
+                    className="mt-4 flex items-center gap-2 px-2 py-2 rounded-lg overflow-hidden"
+                    style={{
+                        backgroundColor: whatsappStatus.ready ? 'rgba(5,150,105,0.12)' : 'rgba(217,119,6,0.12)',
+                        border: `1px solid ${whatsappStatus.ready ? 'rgba(5,150,105,0.2)' : 'rgba(217,119,6,0.2)'}`,
+                    }}
                 >
-                    <div className="flex items-center justify-between px-4 h-14">
-                        <button onClick={() => setSidebarOpen(true)} style={{ color: 'var(--text-secondary)' }}>
-                            <Menu className="w-5 h-5" />
-                        </button>
-                        <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md" style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}>
-                                <Users className="w-3.5 h-3.5 text-white" />
-                            </div>
-                            <h1 className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>Gym Manager</h1>
-                        </div>
-                        <button onClick={() => setDarkMode(!darkMode)} style={{ color: 'var(--text-secondary)' }}>
-                            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                        </button>
-                    </div>
-                </header>
-
-                {/* Page content */}
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
-                    <Outlet />
-                </main>
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse ${whatsappStatus.ready ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                    <Smartphone
+                        size={15}
+                        className="flex-shrink-0"
+                        style={{ color: whatsappStatus.ready ? '#34d399' : '#fbbf24' }}
+                    />
+                    <AnimatePresence>
+                        {open && (
+                            <motion.span
+                                key="wa-text"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="text-xs font-medium whitespace-nowrap overflow-hidden"
+                                style={{ color: whatsappStatus.ready ? '#34d399' : '#fbbf24' }}
+                            >
+                                {whatsappStatus.ready ? 'WhatsApp Connected' : 'WhatsApp Offline'}
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
+
+            {/* ── Bottom: User + actions ── */}
+            <div
+                className="pt-3 flex flex-col gap-1"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+            >
+                {/* User profile */}
+                {user && (
+                    <div
+                        className="flex items-center gap-3 px-2 py-2 rounded-lg mb-1 overflow-hidden"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+                    >
+                        <div
+                            className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                            style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}
+                        >
+                            {(user.fullName || user.full_name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <AnimatePresence>
+                            {open && (
+                                <motion.div
+                                    key="user-info"
+                                    initial={{ opacity: 0, x: -8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -8 }}
+                                    className="flex-1 min-w-0 overflow-hidden"
+                                >
+                                    <p className="text-white text-xs font-medium truncate">
+                                        {user.fullName || user.full_name}
+                                    </p>
+                                    <span
+                                        className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded mt-0.5 inline-block"
+                                        style={roleBadgeStyle[user.role] || roleBadgeStyle.staff}
+                                    >
+                                        {user.role}
+                                    </span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
+
+                {/* Dark mode */}
+                <SidebarLink
+                    link={{
+                        label: darkMode ? 'Light Mode' : 'Dark Mode',
+                        href: '',
+                        icon: darkMode
+                            ? <Sun size={18} className="text-amber-400" />
+                            : <Moon size={18} />,
+                        onClick: () => setDarkMode(!darkMode),
+                    }}
+                />
+
+                {/* Logout */}
+                <SidebarLink
+                    link={{
+                        label: 'Logout',
+                        href: '',
+                        icon: <LogOut size={18} className="text-red-400" />,
+                        onClick: logout,
+                    }}
+                />
+            </div>
+        </div>
+    );
+}
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
+
+export default function Layout() {
+    const [open, setOpen] = useState(false);
+    const location = useLocation();
+
+    // Close mobile sidebar on route change
+    useEffect(() => { setOpen(false); }, [location.pathname]);
+
+    return (
+        <div className="flex h-screen w-full overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
+            <Sidebar open={open} setOpen={setOpen} animate={true}>
+                <SidebarBody className="h-full">
+                    <SidebarContent />
+                </SidebarBody>
+            </Sidebar>
+
+            {/* Page content */}
+            <main
+                className="flex-1 overflow-auto"
+                style={{ backgroundColor: 'var(--bg-primary)' }}
+            >
+                <div className="p-4 sm:p-6 lg:p-8">
+                    <Outlet />
+                </div>
+            </main>
         </div>
     );
 }

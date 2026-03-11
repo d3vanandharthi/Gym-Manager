@@ -1,6 +1,163 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Users, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Users, AlertCircle, User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+
+// ─── WebGL Smokey Background ─────────────────────────────────────────────────
+
+const vertexSmokeySource = `
+  attribute vec4 a_position;
+  void main() {
+    gl_Position = a_position;
+  }
+`;
+
+const fragmentSmokeySource = `
+precision mediump float;
+
+uniform vec2 iResolution;
+uniform float iTime;
+uniform vec2 iMouse;
+uniform vec3 u_color;
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord){
+    vec2 uv = fragCoord / iResolution;
+    vec2 centeredUV = (2.0 * fragCoord - iResolution.xy) / min(iResolution.x, iResolution.y);
+
+    float time = iTime * 0.5;
+
+    vec2 mouse = iMouse / iResolution;
+    vec2 rippleCenter = 2.0 * mouse - 1.0;
+
+    vec2 distortion = centeredUV;
+    for (float i = 1.0; i < 8.0; i++) {
+        distortion.x += 0.5 / i * cos(i * 2.0 * distortion.y + time + rippleCenter.x * 3.1415);
+        distortion.y += 0.5 / i * cos(i * 2.0 * distortion.x + time + rippleCenter.y * 3.1415);
+    }
+    float wave = abs(sin(distortion.x + distortion.y + time));
+    float glow = smoothstep(0.9, 0.2, wave);
+
+    fragColor = vec4(u_color * glow, 1.0);
+}
+
+void main() {
+    mainImage(gl_FragColor, gl_FragCoord.xy);
+}
+`;
+
+function SmokeyBackground({ color = "#0d9488", className = "" }: { color?: string; className?: string }) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const mouseRef = useRef({ x: 0, y: 0 });
+    const hoveringRef = useRef(false);
+
+    const hexToRgb = (hex: string): [number, number, number] => {
+        const r = parseInt(hex.substring(1, 3), 16) / 255;
+        const g = parseInt(hex.substring(3, 5), 16) / 255;
+        const b = parseInt(hex.substring(5, 7), 16) / 255;
+        return [r, g, b];
+    };
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const gl = canvas.getContext("webgl");
+        if (!gl) { console.error("WebGL not supported"); return; }
+
+        const compileShader = (type: number, source: string): WebGLShader | null => {
+            const shader = gl.createShader(type);
+            if (!shader) return null;
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error("Shader compilation error:", gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        };
+
+        const vertexShader = compileShader(gl.VERTEX_SHADER, vertexSmokeySource);
+        const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentSmokeySource);
+        if (!vertexShader || !fragmentShader) return;
+
+        const program = gl.createProgram();
+        if (!program) return;
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error("Program linking error:", gl.getProgramInfoLog(program));
+            return;
+        }
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        const iResolutionLocation = gl.getUniformLocation(program, "iResolution");
+        const iTimeLocation = gl.getUniformLocation(program, "iTime");
+        const iMouseLocation = gl.getUniformLocation(program, "iMouse");
+        const uColorLocation = gl.getUniformLocation(program, "u_color");
+
+        const startTime = Date.now();
+        const [r, g, b] = hexToRgb(color);
+        gl.uniform3f(uColorLocation, r, g, b);
+
+        let animId: number;
+        const render = () => {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            gl.viewport(0, 0, width, height);
+
+            const currentTime = (Date.now() - startTime) / 1000;
+            gl.uniform2f(iResolutionLocation, width, height);
+            gl.uniform1f(iTimeLocation, currentTime);
+            gl.uniform2f(
+                iMouseLocation,
+                hoveringRef.current ? mouseRef.current.x : width / 2,
+                hoveringRef.current ? height - mouseRef.current.y : height / 2
+            );
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            animId = requestAnimationFrame(render);
+        };
+
+        const handleMouseMove = (event: MouseEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseRef.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        };
+        const handleMouseEnter = () => { hoveringRef.current = true; };
+        const handleMouseLeave = () => { hoveringRef.current = false; };
+
+        canvas.addEventListener("mousemove", handleMouseMove);
+        canvas.addEventListener("mouseenter", handleMouseEnter);
+        canvas.addEventListener("mouseleave", handleMouseLeave);
+
+        render();
+
+        return () => {
+            cancelAnimationFrame(animId);
+            canvas.removeEventListener("mousemove", handleMouseMove);
+            canvas.removeEventListener("mouseenter", handleMouseEnter);
+            canvas.removeEventListener("mouseleave", handleMouseLeave);
+        };
+    }, [color]);
+
+    return (
+        <div className={`absolute inset-0 w-full h-full overflow-hidden ${className}`}>
+            <canvas ref={canvasRef} className="w-full h-full" />
+            <div className="absolute inset-0 backdrop-blur-sm"></div>
+        </div>
+    );
+}
+
+// ─── Login Page ──────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -24,106 +181,80 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-primary)' }}>
-            {/* Subtle background accent */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div
-                    className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.04]"
-                    style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }}
-                />
-            </div>
-
-            <div className="animate-scale-in relative w-full max-w-sm">
-                {/* Card */}
-                <div
-                    className="p-8 rounded-2xl border"
-                    style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        borderColor: 'var(--border-color)',
-                        boxShadow: 'var(--shadow-lg)',
-                    }}
-                >
+        <main className="relative w-screen h-screen bg-gray-900 overflow-hidden">
+            <SmokeyBackground className="absolute inset-0" color="#0d9488" />
+            <div className="relative z-10 flex items-center justify-center w-full h-full p-4">
+                <div className="w-full max-w-sm p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl animate-scale-in">
                     {/* Logo */}
-                    <div className="flex justify-center mb-6">
-                        <div
-                            className="p-3 rounded-xl"
-                            style={{
-                                background: 'linear-gradient(135deg, #0d9488, #059669)',
-                                boxShadow: '0 8px 24px rgba(13, 148, 136, 0.25)',
-                            }}
-                        >
-                            <Users className="w-7 h-7 text-white" />
+                    <div className="text-center">
+                        <div className="flex justify-center mb-4">
+                            <div
+                                className="p-3.5 rounded-xl"
+                                style={{
+                                    background: 'linear-gradient(135deg, #0d9488, #059669)',
+                                    boxShadow: '0 8px 32px rgba(13, 148, 136, 0.4)',
+                                }}
+                            >
+                                <Users className="w-7 h-7 text-white" />
+                            </div>
                         </div>
+                        <h2 className="text-3xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
+                            Gym Manager
+                        </h2>
+                        <p className="mt-2 text-sm text-gray-300">Sign in to manage memberships</p>
                     </div>
 
-                    <h1 className="text-xl font-bold text-center mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-                        Gym Manager
-                    </h1>
-                    <p className="text-center text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
-                        Sign in to manage memberships
-                    </p>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Username */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Username</label>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* Username Input with Animated Label */}
+                        <div className="relative z-0">
                             <input
                                 type="text"
+                                id="floating_username"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all duration-150"
-                                style={{
-                                    backgroundColor: 'var(--bg-secondary)',
-                                    border: '1px solid var(--border-color)',
-                                    color: 'var(--text-primary)',
-                                }}
-                                onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)'; }}
-                                onBlur={e => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
-                                placeholder="Enter username"
+                                onChange={e => setUsername(e.target.value)}
+                                className="block py-2.5 px-0 w-full text-sm text-white bg-transparent border-0 border-b-2 border-gray-300/50 appearance-none focus:outline-none focus:ring-0 focus:border-teal-400 peer"
+                                placeholder=" "
                                 required
                             />
+                            <label
+                                htmlFor="floating_username"
+                                className="absolute text-sm text-gray-300 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-teal-400 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+                            >
+                                <User className="inline-block mr-2 -mt-1" size={16} />
+                                Username
+                            </label>
                         </div>
 
-                        {/* Password */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Password</label>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 pr-10 rounded-lg text-sm outline-none transition-all duration-150"
-                                    style={{
-                                        backgroundColor: 'var(--bg-secondary)',
-                                        border: '1px solid var(--border-color)',
-                                        color: 'var(--text-primary)',
-                                    }}
-                                    onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-glow)'; }}
-                                    onBlur={e => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
-                                    placeholder="Enter password"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                                    style={{ color: 'var(--text-muted)' }}
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
+                        {/* Password Input with Animated Label */}
+                        <div className="relative z-0">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                id="floating_password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="block py-2.5 px-0 w-full text-sm text-white bg-transparent border-0 border-b-2 border-gray-300/50 appearance-none focus:outline-none focus:ring-0 focus:border-teal-400 peer"
+                                placeholder=" "
+                                required
+                            />
+                            <label
+                                htmlFor="floating_password"
+                                className="absolute text-sm text-gray-300 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-teal-400 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+                            >
+                                <Lock className="inline-block mr-2 -mt-1" size={16} />
+                                Password
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-0 top-2.5 text-gray-400 hover:text-white transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                         </div>
 
                         {/* Error */}
                         {error && (
-                            <div
-                                className="p-3 rounded-lg text-sm flex items-center gap-2"
-                                style={{
-                                    backgroundColor: 'var(--danger-bg)',
-                                    color: 'var(--danger)',
-                                    border: '1px solid rgba(220,38,38,0.2)',
-                                }}
-                            >
+                            <div className="p-3 rounded-lg text-sm flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/30">
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                                 {error}
                             </div>
@@ -133,29 +264,31 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all duration-150 disabled:opacity-60 active:scale-[0.98]"
+                            className="group w-full flex items-center justify-center py-3 px-4 rounded-lg text-white font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-teal-500 transition-all duration-300 disabled:opacity-60"
                             style={{
-                                backgroundColor: 'var(--accent)',
-                                boxShadow: '0 1px 3px rgba(13,148,136,0.3)',
+                                background: 'linear-gradient(135deg, #0d9488, #059669)',
+                                boxShadow: '0 4px 15px rgba(13, 148, 136, 0.4)',
                             }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--accent-hover)'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--accent)'}
                         >
                             {loading ? (
-                                <span className="flex items-center justify-center gap-2">
+                                <span className="flex items-center gap-2">
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     Signing in...
                                 </span>
-                            ) : 'Sign In'}
+                            ) : (
+                                <>
+                                    Sign In
+                                    <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
                     </form>
-                </div>
 
-                {/* Footer text */}
-                <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
-                    Gym Manager &mdash; Membership Management System
-                </p>
+                    <p className="text-center text-xs text-gray-400">
+                        Gym Manager &mdash; Membership Management System
+                    </p>
+                </div>
             </div>
-        </div>
+        </main>
     );
 }

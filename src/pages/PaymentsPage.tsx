@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Payment, Plan, Member, Invoice } from '../types';
 import StatsCard from '../components/StatsCard';
-import { CreditCard, Plus, IndianRupee, X, AlertCircle, Trash2, TrendingUp, Receipt, Package, Save, Download, FileText, ShoppingCart, Minus, ShoppingBag } from 'lucide-react';
+import { CreditCard, Plus, IndianRupee, X, AlertCircle, Trash2, TrendingUp, Receipt, Package, Save, Download, FileText, ShoppingCart, Minus, ShoppingBag, User, ChevronDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 type TabId = 'payments' | 'invoices' | 'plans' | 'pos';
 
@@ -51,8 +52,9 @@ export default function PaymentsPage() {
     };
 
     const handlePlanSelect = (planId: string) => {
-        const plan = plans.find(p => p.id === planId);
-        setForm({ ...form, planId, amount: plan ? String(plan.price) : form.amount });
+        const resolved = planId === '__custom__' ? '' : planId;
+        const plan = plans.find(p => p.id === resolved);
+        setForm({ ...form, planId: resolved, amount: plan ? String(plan.price) : form.amount });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -67,10 +69,8 @@ export default function PaymentsPage() {
     };
 
     const handleDeletePayment = async (id: string) => {
-        if (window.confirm('Delete this payment?')) {
-            try { await api.deletePayment(id); showNotif('Payment deleted', 'success'); loadData(); }
-            catch (err) { showNotif('Failed to delete', 'error'); }
-        }
+        try { await api.deletePayment(id); showNotif('Payment deleted', 'success'); loadData(); }
+        catch (err) { showNotif('Failed to delete', 'error'); }
     };
 
     const handleSavePlan = async (e: React.FormEvent) => {
@@ -83,10 +83,8 @@ export default function PaymentsPage() {
     };
 
     const handleDeletePlan = async (id: string) => {
-        if (window.confirm('Delete this plan?')) {
-            try { await api.deletePlan(id); showNotif('Plan deleted', 'success'); loadData(); }
-            catch (err) { showNotif('Failed to delete', 'error'); }
-        }
+        try { await api.deletePlan(id); showNotif('Plan deleted', 'success'); loadData(); }
+        catch (err) { showNotif('Failed to delete', 'error'); }
     };
 
     const handleDownloadInvoice = async (id: string) => {
@@ -188,58 +186,147 @@ export default function PaymentsPage() {
                 ))}
             </div>
 
-            {/* Payment Modal */}
+            {/* ── Record Payment Modal ── */}
             {showForm && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-                    <div className="relative p-6 max-w-md w-full animate-scale-in rounded-xl border"
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <div className="relative w-full max-w-md animate-scale-in rounded-2xl border overflow-hidden"
                         style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-lg)' }}
                         onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 transition-colors hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-                            <X className="w-5 h-5" />
-                        </button>
-                        <h3 className="text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>Record Payment</h3>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Member</label>
-                                <select required value={form.memberId} onChange={e => setForm({ ...form, memberId: e.target.value })}
-                                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all" style={fieldStyle}>
-                                    <option value="">Select member...</option>
-                                    {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.phone})</option>)}
-                                </select>
+
+                        {/* Header */}
+                        <div className="px-6 py-5 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--accent-light)' }}>
+                                <CreditCard className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Plan (optional)</label>
-                                <select value={form.planId} onChange={e => handlePlanSelect(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all" style={fieldStyle}>
-                                    <option value="">Custom amount</option>
-                                    {plans.map(p => <option key={p.id} value={p.id}>{p.name} — ₹{p.price} ({p.duration_months} mo)</option>)}
-                                </select>
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>Record Payment</h3>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Add a membership or custom payment</p>
                             </div>
+                            <button onClick={() => setShowForm(false)}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
+                                style={{ color: 'var(--text-muted)' }}>
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                            {/* Member Select */}
                             <div>
-                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Amount (₹)</label>
-                                <input type="number" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
-                                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all" style={fieldStyle} placeholder="500" />
+                                <p className="text-xs font-medium mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                                    <User size={12} /> Member *
+                                </p>
+                                <Select required value={form.memberId} onValueChange={v => setForm({ ...form, memberId: v })}>
+                                    <SelectTrigger className="w-full text-sm h-auto px-3.5 py-2.5 rounded-lg border"
+                                        style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: form.memberId ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                        <SelectValue placeholder="Select member..." />
+                                    </SelectTrigger>
+                                    <SelectContent style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', zIndex: 60 }}>
+                                        {members.map(m => (
+                                            <SelectItem key={m.id} value={m.id} style={{ color: 'var(--text-primary)' }}>
+                                                {m.name} · {m.phone}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
+
+                            {/* Plan Select */}
                             <div>
-                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Method</label>
-                                <select value={form.method} onChange={e => setForm({ ...form, method: e.target.value })}
-                                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all" style={fieldStyle}>
-                                    {['Cash', 'UPI', 'Card', 'Bank Transfer'].map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
+                                <p className="text-xs font-medium mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                                    <Package size={12} /> Plan
+                                </p>
+                                <Select value={form.planId || '__custom__'} onValueChange={v => handlePlanSelect(v)}>
+                                    <SelectTrigger className="w-full text-sm h-auto px-3.5 py-2.5 rounded-lg border"
+                                        style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+                                        <SelectValue placeholder="Custom amount (no plan)" />
+                                    </SelectTrigger>
+                                    <SelectContent style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', zIndex: 60 }}>
+                                        <SelectItem value="__custom__" style={{ color: 'var(--text-muted)' }}>Custom amount</SelectItem>
+                                        {plans.map(p => (
+                                            <SelectItem key={p.id} value={p.id} style={{ color: 'var(--text-primary)' }}>
+                                                {p.name} — ₹{p.price} ({p.duration_months} mo)
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
+
+                            {/* Amount */}
+                            <div className="relative z-0">
+                                <div className="flex items-center border-b-2 transition-colors pb-1"
+                                    style={{ borderColor: 'var(--border-color)' }}
+                                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
+                                >
+                                    <span className="text-base font-medium mr-1" style={{ color: 'var(--text-muted)' }}>₹</span>
+                                    <input
+                                        type="number" required
+                                        value={form.amount}
+                                        onChange={e => setForm({ ...form, amount: e.target.value })}
+                                        placeholder="0"
+                                        className="flex-1 py-2 bg-transparent text-lg font-semibold outline-none"
+                                        style={{ color: 'var(--text-primary)' }}
+                                    />
+                                </div>
+                                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Amount (₹) *</p>
+                            </div>
+
+                            {/* Payment Method Chips */}
                             <div>
-                                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Notes</label>
-                                <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all" style={fieldStyle} placeholder="Optional notes..." />
+                                <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Payment Method</p>
+                                <div className="flex gap-2 flex-wrap">
+                                    {['Cash', 'UPI', 'Card', 'Bank Transfer'].map(method => (
+                                        <button
+                                            key={method} type="button"
+                                            onClick={() => setForm({ ...form, method })}
+                                            className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all border"
+                                            style={{
+                                                backgroundColor: form.method === method ? 'var(--accent)' : 'var(--bg-tertiary)',
+                                                color: form.method === method ? '#ffffff' : 'var(--text-secondary)',
+                                                borderColor: form.method === method ? 'var(--accent)' : 'var(--border-color)',
+                                                boxShadow: form.method === method ? '0 2px 8px rgba(13,148,136,0.3)' : 'none',
+                                            }}
+                                        >
+                                            {method}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="flex gap-3 pt-2">
+
+                            {/* Notes */}
+                            <div className="relative z-0">
+                                <input
+                                    type="text" id="pay-notes"
+                                    value={form.notes}
+                                    onChange={e => setForm({ ...form, notes: e.target.value })}
+                                    placeholder=" "
+                                    className="block py-2.5 px-0 w-full text-sm bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0 peer transition-colors"
+                                    style={{ color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
+                                    onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+                                    onBlur={e => (e.target.style.borderColor = 'var(--border-color)')}
+                                />
+                                <label htmlFor="pay-notes"
+                                    className="absolute text-sm duration-300 transform -translate-y-6 scale-75 top-3 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:-translate-y-6 peer-focus:scale-75 pointer-events-none"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    Notes (optional)
+                                </label>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-1">
                                 <button type="button" onClick={() => setShowForm(false)}
-                                    className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
-                                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Cancel</button>
+                                    className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-[var(--bg-tertiary)]"
+                                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                                    Cancel
+                                </button>
                                 <button type="submit"
-                                    className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-all"
-                                    style={{ backgroundColor: 'var(--accent)' }}>Record Payment</button>
+                                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.97] flex items-center justify-center gap-2"
+                                    style={{ background: 'linear-gradient(135deg, #0d9488, #059669)', boxShadow: '0 4px 15px rgba(13,148,136,0.35)' }}>
+                                    <CreditCard size={15} />
+                                    Record Payment
+                                </button>
                             </div>
                         </form>
                     </div>
