@@ -32,6 +32,7 @@ export default function ClassesPage() {
     const [checkinSearch, setCheckinSearch] = useState('');
     const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord[]>([]);
     const [checkinLoading, setCheckinLoading] = useState<string | null>(null);
+    const [pendingDeleteClassId, setPendingDeleteClassId] = useState<string | null>(null);
 
     useEffect(() => { loadData(); }, []);
 
@@ -134,12 +135,17 @@ export default function ClassesPage() {
     };
 
     const handleDeleteClass = async (id: string) => {
-        if (!window.confirm('Delete this class?')) return;
+        setPendingDeleteClassId(id);
+    };
+
+    const confirmDeleteClass = async () => {
+        if (!pendingDeleteClassId) return;
         try {
-            await api.deleteClass(id);
+            await api.deleteClass(pendingDeleteClassId);
             showNotif('Class deleted', 'success');
             loadData();
         } catch (err: any) { showNotif(err.message, 'error'); }
+        finally { setPendingDeleteClassId(null); }
     };
 
     // Check-in
@@ -201,6 +207,27 @@ export default function ClassesPage() {
                 <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Schedule, manage classes, and check in members</p>
             </div>
 
+            {/* Delete Class Confirm */}
+            {pendingDeleteClassId && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                    <div className="w-full max-w-sm rounded-2xl p-6 animate-scale-in" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--danger-bg)' }}><Trash2 className="w-5 h-5" style={{ color: 'var(--danger)' }} /></div>
+                            <div><p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Delete Class?</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>This will remove the class and all its bookings.</p></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setPendingDeleteClassId(null)}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                                style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Cancel</button>
+                            <button onClick={confirmDeleteClass}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                                style={{ backgroundColor: 'var(--danger)' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {notification && (
                 <div className="p-4 rounded-xl flex items-center gap-3 animate-fade-in-up" style={{
                     backgroundColor: notification.type === 'success' ? 'var(--success-bg)' : 'var(--danger-bg)',
@@ -213,10 +240,10 @@ export default function ClassesPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '100ms' }}>
+            <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '100ms' }}>
                 {tabs.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-w-fit"
                         style={{
                             backgroundColor: activeTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
                             color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -421,7 +448,8 @@ export default function ClassesPage() {
                         )}
 
                         {/* Classes table */}
-                        <div className="overflow-x-auto">
+                        {/* Desktop Table */}
+                        <div className="hidden sm:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -472,6 +500,45 @@ export default function ClassesPage() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                        {/* Mobile Cards */}
+                        <div className="sm:hidden">
+                            {classes.length === 0 ? (
+                                <div className="py-12 text-center px-4">
+                                    <CalendarDays className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--border-color)' }} />
+                                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No classes yet</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                                    {classes.map(cls => (
+                                        <div key={cls.id} className="p-4">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{cls.name}</span>
+                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-lg" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                                                    {dayLabel(cls.day_of_week)}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                                                {formatTime(cls.start_time)} – {formatTime(cls.end_time)}
+                                                {cls.trainer_name && ` • ${cls.trainer_name}`}
+                                                {` • Cap: ${cls.max_capacity}`}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => { setEditingClass(cls); setShowAddClass(false); }}
+                                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                                    style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                                                    <Edit className="w-3.5 h-3.5" /> Edit
+                                                </button>
+                                                <button onClick={() => handleDeleteClass(cls.id)}
+                                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                                    style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}>
+                                                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

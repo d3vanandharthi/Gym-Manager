@@ -275,7 +275,7 @@ export default function Layout() {
                 className="flex-1 overflow-auto"
                 style={{ backgroundColor: 'var(--bg-primary)' }}
             >
-                <div className="p-4 sm:p-6 lg:p-8">
+                <div className="p-3 sm:p-6 lg:p-8">
                     <Outlet />
                 </div>
             </main>

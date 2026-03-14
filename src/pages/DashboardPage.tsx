@@ -100,7 +100,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     {revenueData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={280}>
+                        <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 220 : 280}>
                             <AreaChart data={revenueData}>
                                 <defs>
                                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">

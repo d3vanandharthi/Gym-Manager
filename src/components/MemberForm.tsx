@@ -148,7 +148,7 @@ function DatePickerField({ label, icon: Icon, value, onChange, required = false 
                         {date ? format(date, 'dd MMM yyyy') : 'Pick a date'}
                     </button>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-auto">
+                <PopoverContent align="center" sideOffset={4} collisionPadding={16} className="w-auto max-w-[320px]">
                     <Calendar
                         mode="single"
                         selected={date}
@@ -409,14 +409,14 @@ export default function MemberForm({ formData, onChange, onSubmit, onCancel, isE
                 </div>
 
                 {/* ── Actions ── */}
-                <div className="flex items-center justify-end gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-8">
                     <button type="button" onClick={onCancel}
-                        className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--bg-tertiary)] active:scale-[0.98]"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--bg-tertiary)] active:scale-[0.98]"
                         style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
                         Cancel
                     </button>
                     <button type="submit"
-                        className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-all active:scale-[0.98] flex items-center gap-2"
+                        className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         style={{
                             background: 'linear-gradient(135deg, #0d9488, #059669)',
                             boxShadow: '0 4px 15px rgba(13,148,136,0.35)',

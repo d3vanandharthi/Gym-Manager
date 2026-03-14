@@ -22,6 +22,8 @@ export default function SettingsPage() {
     const [staffUsers, setStaffUsers] = useState<User[]>([]);
     const [showAddUser, setShowAddUser] = useState(false);
     const [newUser, setNewUser] = useState({ username: '', password: '', fullName: '', role: 'staff', phone: '', email: '' });
+    const [pendingDeleteTemplateId, setPendingDeleteTemplateId] = useState<string | null>(null);
+    const [pendingDeleteUser, setPendingDeleteUser] = useState<User | null>(null);
 
     // Invoice Settings
     const [invoiceSettings, setInvoiceSettings] = useState({
@@ -68,10 +70,14 @@ export default function SettingsPage() {
     };
 
     const handleDeleteTemplate = async (id: string) => {
-        if (window.confirm('Delete this template?')) {
-            try { await api.deleteTemplate(id); showNotif('Template deleted', 'success'); loadData(); }
-            catch (err) { showNotif('Failed', 'error'); }
-        }
+        setPendingDeleteTemplateId(id);
+    };
+
+    const confirmDeleteTemplate = async () => {
+        if (!pendingDeleteTemplateId) return;
+        try { await api.deleteTemplate(pendingDeleteTemplateId); showNotif('Template deleted', 'success'); loadData(); }
+        catch (err) { showNotif('Failed', 'error'); }
+        finally { setPendingDeleteTemplateId(null); }
     };
 
     const handleSaveInvoiceSettings = async () => {
@@ -109,13 +115,17 @@ export default function SettingsPage() {
     };
 
     const handleDeleteUser = async (u: User) => {
-        if (window.confirm(`Delete user "${u.full_name || u.fullName}"?`)) {
-            try {
-                await api.deleteUser(u.id);
-                showNotif('User deleted', 'success');
-                loadData();
-            } catch (err: any) { showNotif(err.message || 'Failed', 'error'); }
-        }
+        setPendingDeleteUser(u);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!pendingDeleteUser) return;
+        try {
+            await api.deleteUser(pendingDeleteUser.id);
+            showNotif('User deleted', 'success');
+            loadData();
+        } catch (err: any) { showNotif(err.message || 'Failed', 'error'); }
+        finally { setPendingDeleteUser(null); }
     };
 
     const roleBadge = (role: string) => {
@@ -143,6 +153,48 @@ export default function SettingsPage() {
                 <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Manage WhatsApp, templates, message history{isOwnerOrAdmin ? ', and staff' : ''}</p>
             </div>
 
+            {/* Delete Template Confirm */}
+            {pendingDeleteTemplateId && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                    <div className="w-full max-w-sm rounded-2xl p-6 animate-scale-in" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--danger-bg)' }}><Trash2 className="w-5 h-5" style={{ color: 'var(--danger)' }} /></div>
+                            <div><p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Delete Template?</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>This cannot be undone.</p></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setPendingDeleteTemplateId(null)}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                                style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Cancel</button>
+                            <button onClick={confirmDeleteTemplate}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                                style={{ backgroundColor: 'var(--danger)' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete User Confirm */}
+            {pendingDeleteUser && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                    <div className="w-full max-w-sm rounded-2xl p-6 animate-scale-in" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--danger-bg)' }}><Trash2 className="w-5 h-5" style={{ color: 'var(--danger)' }} /></div>
+                            <div><p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Delete "{pendingDeleteUser.full_name || pendingDeleteUser.fullName}"?</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>This user will permanently lose access.</p></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setPendingDeleteUser(null)}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                                style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Cancel</button>
+                            <button onClick={confirmDeleteUser}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                                style={{ backgroundColor: 'var(--danger)' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {notification && (
                 <div className="p-4 rounded-xl flex items-center gap-3 animate-fade-in-up" style={{
                     backgroundColor: notification.type === 'success' ? 'var(--success-bg)' : 'var(--danger-bg)',
@@ -155,10 +207,10 @@ export default function SettingsPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '100ms' }}>
+            <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '100ms' }}>
                 {tabs.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-w-fit"
                         style={{
                             backgroundColor: activeTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
                             color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -309,7 +361,8 @@ export default function SettingsPage() {
             {/* MESSAGE LOG TAB */}
             {activeTab === 'log' && (
                 <div className="surface overflow-hidden animate-fade-in-up">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -356,6 +409,38 @@ export default function SettingsPage() {
                             </tbody>
                         </table>
                     </div>
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden">
+                        {messageLog.length === 0 ? (
+                            <div className="py-16 text-center px-4">
+                                <History className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--border-color)' }} />
+                                <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No messages sent yet</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                                {messageLog.map(log => (
+                                    <div key={log.id} className="p-4">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{log.member_name || '—'}</span>
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded" style={{
+                                                backgroundColor: log.status === 'sent' ? 'var(--success-bg)' : 'var(--danger-bg)',
+                                                color: log.status === 'sent' ? 'var(--success)' : 'var(--danger)',
+                                            }}>
+                                                {log.status === 'sent' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                                {log.status}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs mb-1 truncate" style={{ color: 'var(--text-muted)' }}>{log.message}</div>
+                                        <div className="text-[11px] flex gap-2" style={{ color: 'var(--text-muted)' }}>
+                                            <span>{log.phone}</span>
+                                            <span>•</span>
+                                            <span>{new Date(log.sent_at).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -384,7 +469,7 @@ export default function SettingsPage() {
                                 <textarea value={invoiceSettings.gymAddress} onChange={e => setInvoiceSettings({ ...invoiceSettings, gymAddress: e.target.value })}
                                     placeholder="Full address for invoice header" className="w-full px-4 py-2.5 rounded-xl text-sm input-field resize-none h-20" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>GSTIN (Optional)</label>
                                     <input type="text" value={invoiceSettings.gymGstin} onChange={e => setInvoiceSettings({ ...invoiceSettings, gymGstin: e.target.value })}
@@ -484,7 +569,8 @@ export default function SettingsPage() {
                         )}
 
                         {/* Staff Table */}
-                        <div className="overflow-x-auto">
+                        {/* Desktop Table */}
+                        <div className="hidden sm:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -548,6 +634,51 @@ export default function SettingsPage() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                        {/* Mobile Cards */}
+                        <div className="sm:hidden">
+                            <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                                {staffUsers.map(u => (
+                                    <div key={u.id} className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-sm font-bold"
+                                                style={{ background: 'linear-gradient(135deg, #0d9488, #059669)' }}>
+                                                {(u.full_name || u.fullName || 'U').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{u.full_name || u.fullName}</span>
+                                                    {roleBadge(u.role)}
+                                                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0" style={{
+                                                        backgroundColor: u.is_active ? 'var(--success-bg)' : 'var(--danger-bg)',
+                                                        color: u.is_active ? 'var(--success)' : 'var(--danger)',
+                                                    }}>
+                                                        {u.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>@{u.username}</div>
+                                                <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{u.phone || ''} {u.email ? `• ${u.email}` : ''}</div>
+                                            </div>
+                                        </div>
+                                        {u.role !== 'owner' && (
+                                            <div className="flex gap-2 mt-3 ml-[52px]">
+                                                <button onClick={() => handleToggleActive(u)}
+                                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                                    style={{ backgroundColor: u.is_active ? 'rgba(245,158,11,0.12)' : 'var(--success-bg)', color: u.is_active ? '#f59e0b' : 'var(--success)' }}>
+                                                    {u.is_active ? <><ToggleRight className="w-3.5 h-3.5" /> Deactivate</> : <><ToggleLeft className="w-3.5 h-3.5" /> Activate</>}
+                                                </button>
+                                                {currentUser?.role === 'owner' && (
+                                                    <button onClick={() => handleDeleteUser(u)}
+                                                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                                        style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}>
+                                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

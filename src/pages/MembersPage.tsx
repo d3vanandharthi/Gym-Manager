@@ -200,10 +200,10 @@ export default function MembersPage() {
             </div>
 
             {/* Filter tabs */}
-            <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '150ms' }}>
+            <div className="flex gap-1 p-1 rounded-xl animate-fade-in-up overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)', animationDelay: '150ms' }}>
                 {(['all', 'active', 'expired', 'birthday'] as const).map(f => (
                     <button key={f} onClick={() => setStatusFilter(f)}
-                        className="flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all capitalize flex items-center justify-center gap-1"
+                        className="flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all capitalize flex items-center justify-center gap-1 whitespace-nowrap min-w-fit"
                         style={{
                             backgroundColor: statusFilter === f ? 'var(--bg-secondary)' : 'transparent',
                             color: statusFilter === f ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -307,10 +307,12 @@ export default function MembersPage() {
                 </div>
             )}
 
-            {/* Members Table */}
+            {/* Members — Desktop Table + Mobile Cards */}
             <div className="rounded-xl border overflow-hidden animate-fade-in-up"
                 style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-card)', animationDelay: '200ms' }}>
-                <div className="overflow-x-auto">
+
+                {/* ── Desktop Table (hidden on mobile) ── */}
+                <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -396,6 +398,83 @@ export default function MembersPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* ── Mobile Cards (visible only on mobile) ── */}
+                <div className="sm:hidden">
+                    {loading ? (
+                        <div className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                Loading...
+                            </div>
+                        </div>
+                    ) : filteredMembers.length === 0 ? (
+                        <div className="py-16 text-center px-4">
+                            <Users className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>No members found</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                            {filteredMembers.map(member => (
+                                <div key={member.id} className="p-4">
+                                    <div className="flex items-start gap-3">
+                                        {/* Avatar */}
+                                        <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-sm font-bold"
+                                            style={{ background: member.status === 'active' ? 'linear-gradient(135deg, #0d9488, #059669)' : 'linear-gradient(135deg, #dc2626, #ef4444)' }}>
+                                            {member.name.charAt(0).toUpperCase()}
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{member.name}</span>
+                                                {isBirthdayToday(member.dob) && <span>🎂</span>}
+                                                <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold flex-shrink-0" style={{
+                                                    backgroundColor: member.status === 'active' ? 'var(--success-bg)' : 'var(--danger-bg)',
+                                                    color: member.status === 'active' ? 'var(--success)' : 'var(--danger)',
+                                                }}>
+                                                    <span className="w-1 h-1 rounded-full" style={{ backgroundColor: member.status === 'active' ? 'var(--success)' : 'var(--danger)' }} />
+                                                    {member.status === 'active' ? 'Active' : 'Expired'}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{member.phone}</div>
+                                            <div className="text-[11px] flex gap-3" style={{ color: 'var(--text-muted)' }}>
+                                                <span>Joined: {member.joinDate}</span>
+                                                <span>Exp: {member.expiryDate}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Select checkbox */}
+                                        <button onClick={() => toggleSelect(member.id)} className="p-1 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                            {selectedIds.has(member.id)
+                                                ? <CheckSquare className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                                                : <Square className="w-5 h-5" />}
+                                        </button>
+                                    </div>
+
+                                    {/* Action buttons row */}
+                                    <div className="flex gap-2 mt-3 ml-[52px]">
+                                        <button onClick={() => handleSendWhatsApp(member)}
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                            style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}>
+                                            <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                                        </button>
+                                        <button onClick={() => handleEdit(member)}
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                            <Edit className="w-3.5 h-3.5" /> Edit
+                                        </button>
+                                        <button onClick={() => handleDelete(member.id)}
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                            style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}>
+                                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

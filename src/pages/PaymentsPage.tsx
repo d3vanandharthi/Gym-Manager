@@ -20,6 +20,7 @@ export default function PaymentsPage() {
     const [showPlanForm, setShowPlanForm] = useState(false);
     const [planForm, setPlanForm] = useState({ name: '', durationMonths: '', price: '' });
     const [form, setForm] = useState({ memberId: '', planId: '', amount: '', method: 'Cash', notes: '' });
+    const [pendingDeletePaymentId, setPendingDeletePaymentId] = useState<string | null>(null);
 
     // POS State
     const posProducts = [
@@ -69,8 +70,14 @@ export default function PaymentsPage() {
     };
 
     const handleDeletePayment = async (id: string) => {
-        try { await api.deletePayment(id); showNotif('Payment deleted', 'success'); loadData(); }
+        setPendingDeletePaymentId(id);
+    };
+
+    const confirmDeletePayment = async () => {
+        if (!pendingDeletePaymentId) return;
+        try { await api.deletePayment(pendingDeletePaymentId); showNotif('Payment deleted', 'success'); loadData(); }
         catch (err) { showNotif('Failed to delete', 'error'); }
+        finally { setPendingDeletePaymentId(null); }
     };
 
     const handleSavePlan = async (e: React.FormEvent) => {
@@ -169,10 +176,10 @@ export default function PaymentsPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+            <div className="flex gap-1 p-1 rounded-xl overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                 {(['payments', 'pos', 'invoices', 'plans'] as TabId[]).map(tab => (
                     <button key={tab} onClick={() => setActiveTab(tab)}
-                        className="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all capitalize flex items-center justify-center gap-2"
+                        className="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all capitalize flex items-center justify-center gap-2 whitespace-nowrap min-w-fit"
                         style={{
                             backgroundColor: activeTab === tab ? 'var(--bg-secondary)' : 'transparent',
                             color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -333,6 +340,27 @@ export default function PaymentsPage() {
                 </div>
             )}
 
+            {/* Delete Payment Confirm */}
+            {pendingDeletePaymentId && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                    <div className="w-full max-w-sm rounded-2xl p-6 animate-scale-in" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--danger-bg)' }}><Trash2 className="w-5 h-5" style={{ color: 'var(--danger)' }} /></div>
+                            <div><p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Delete Payment?</p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>This action cannot be undone.</p></div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setPendingDeletePaymentId(null)}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                                style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Cancel</button>
+                            <button onClick={confirmDeletePayment}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                                style={{ backgroundColor: 'var(--danger)' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* PAYMENTS TAB */}
             {activeTab === 'payments' && (
                 <div className="rounded-xl border overflow-hidden animate-fade-in-up"
@@ -360,7 +388,8 @@ export default function PaymentsPage() {
                             </div>
                         </div>
                     )}
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -406,6 +435,39 @@ export default function PaymentsPage() {
                             </tbody>
                         </table>
                     </div>
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden">
+                        {loading ? (
+                            <div className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+                        ) : payments.length === 0 ? (
+                            <div className="py-16 text-center px-4">
+                                <CreditCard className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                                <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>No payments yet</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                                {payments.map(p => (
+                                    <div key={p.id} className="p-4 flex items-center gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{p.member_name || '—'}</span>
+                                                <span className="ml-auto text-sm font-bold flex-shrink-0" style={{ color: 'var(--accent)' }}>₹{p.amount.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                                <span>{new Date(p.paid_at).toLocaleDateString()}</span>
+                                                <span>•</span>
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{p.method}</span>
+                                                {p.plan_name && <><span>•</span><span>{p.plan_name}</span></>}
+                                            </div>
+                                        </div>
+                                        <button onClick={() => handleDeletePayment(p.id)}
+                                            className="p-2 rounded-lg flex-shrink-0"
+                                            style={{ color: 'var(--danger)' }}><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -413,7 +475,8 @@ export default function PaymentsPage() {
             {activeTab === 'invoices' && (
                 <div className="rounded-xl border overflow-hidden animate-fade-in-up"
                     style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-card)' }}>
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
@@ -454,6 +517,33 @@ export default function PaymentsPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden">
+                        {invoices.length === 0 ? (
+                            <div className="py-16 text-center px-4">
+                                <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                                <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>No invoices yet</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                                {invoices.map(inv => (
+                                    <div key={inv.id} className="p-4" onClick={() => handleDownloadInvoice(inv.id)}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{inv.invoice_number}</span>
+                                            <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>₹{inv.total.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{inv.member_name}</span>
+                                            <span className="text-[10px] font-medium px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}>Paid</span>
+                                        </div>
+                                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                            {new Date(inv.issued_at).toLocaleDateString()} • {inv.plan_name} • {inv.method}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
